@@ -37,7 +37,7 @@
  *
  */
 
-extern seos_err_t ChanMux_write(unsigned int chan, size_t len, size_t* written);
+seos_err_t ChanMux_write(unsigned int chan, size_t len, size_t* written);
 
 /**
  * @details %ChanMux_read, Read data using ChanMux
@@ -58,7 +58,7 @@ extern seos_err_t ChanMux_write(unsigned int chan, size_t len, size_t* written);
  *
  */
 
-extern seos_err_t ChanMux_read(unsigned int chan, size_t len, size_t* read);
+seos_err_t ChanMux_read(unsigned int chan, size_t len, size_t* read);
 
 
 /**
@@ -150,7 +150,7 @@ SeosNwChanmux_chanReadBlocking(
  * @retval length written
  *
  */
-int
+size_t
 SeosNwChanmux_write_data(
     void*   buffer,
     size_t  len);
@@ -167,7 +167,7 @@ SeosNwChanmux_write_data(
  * @retval length read
  *
  */
-int
+size_t
 SeosNwChanmux_read_data(
     void*   buffer,
     size_t  len);
@@ -185,7 +185,7 @@ SeosNwChanmux_read_data(
  *
  */
 
-int
+seos_err_t
 SeosNwChanmux_get_mac(
     char*     name,
     uint8_t*  mac);

@@ -14,23 +14,16 @@
 #include <stddef.h>
 
 extern Seos_nw_camkes_info* pnw_camkes;
+#define MAC_SIZE 6
 
-/* Function to send ctrl cmds.
- *
- * Ctrl cmds will always fit within PAGE_SIZE.
- *
- */
 size_t
 SeosNwChanmux_chanWriteSyncCtrl(
     const void*   buf,
     size_t        len)
 {
     size_t written = 0;
-    void* ctrlwrbuf;
+    void* ctrlwrbuf = pnw_camkes->pportsglu->ChanMuxCtrlPort;
     unsigned int chan;
-
-
-    ctrlwrbuf = pnw_camkes->pportsglu->ChanMuxCtrlPort;
 
     if (pnw_camkes->instanceID == SEOS_NWSTACK_AS_CLIENT)
     {
@@ -47,16 +40,14 @@ SeosNwChanmux_chanWriteSyncCtrl(
 
     // tell the other side how much data we want to send and in which channel
     seos_err_t err = ChanMux_write(chan, len, &written);
-    Debug_ASSERT_PRINTFLN(!err, "seos err %d", err);
+    if (err != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("%s(),Error in writing, err= %d", __FUNCTION__, err);
+    }
 
     return written;
 }
 
-/* Function to send NW data.
- *
- * Data may not fit within PAGE_SIZE. Hence loop if required until all data is sent
- * w_size finally contains how many actually bytes were written.
- */
 size_t
 SeosNwChanmux_chanWriteSyncData(
     const void*   buf,
@@ -65,15 +56,12 @@ SeosNwChanmux_chanWriteSyncData(
     size_t written = 0;
     size_t remain_len = len;
     size_t w_size = 0;
-    void* datawrbuf;
+    void* datawrbuf = pnw_camkes->pportsglu->ChanMuxDataPort;
     unsigned int chan;
 
-    datawrbuf = pnw_camkes->pportsglu->ChanMuxDataPort;
     if (pnw_camkes->instanceID == SEOS_NWSTACK_AS_CLIENT)
     {
-
         chan = CHANNEL_NW_STACK_DATA;
-
     }
     else
     {
@@ -87,14 +75,13 @@ SeosNwChanmux_chanWriteSyncData(
         memcpy(datawrbuf, buf + w_size, len);
         // tell the other side how much data we want to send and in which channel
         seos_err_t err = ChanMux_write(chan, len, &written);
-        Debug_ASSERT_PRINTFLN(!err, "seos err %d", err);
-        w_size = +written;
-        len = remain_len - w_size;
-        if (err < 0)
+        if (err != SEOS_SUCCESS)
         {
-            Debug_LOG_INFO("error in writing, err= %d\n", err);
+            Debug_LOG_ERROR("%s(),Error in writing, err= %d", __FUNCTION__, err);
             break;
         }
+        w_size = +written;
+        len = remain_len - w_size;
     }
     return w_size;
 }
@@ -107,8 +94,12 @@ SeosNwChanmux_chanRead(
 {
     size_t read = 0;
     seos_err_t err = ChanMux_read(chan, len, &read);
-    Debug_ASSERT_PRINTFLN(!err, "seos err %d", err);
 
+    if (err != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("%s(),Error in reading, err= %d", __FUNCTION__, err);
+        return read;
+    }
     void* chanctrlport = pnw_camkes->pportsglu->ChanMuxCtrlPort;
     void* chandataport = pnw_camkes->pportsglu->ChanMuxDataPort;
 
@@ -126,7 +117,6 @@ SeosNwChanmux_chanRead(
                 memcpy(buf, chanctrlport, read);
             }
         }
-
         else
         {
             if (chan == CHANNEL_NW_STACK_DATA_2)
@@ -142,7 +132,6 @@ SeosNwChanmux_chanRead(
     }
     return read;
 }
-
 
 size_t
 SeosNwChanmux_chanReadBlocking (
@@ -168,21 +157,9 @@ SeosNwChanmux_chanReadBlocking (
         }
     }
     return lenRead;
-
 }
 
-
-//------------------------------------------------------------------------------
-// called by PicoTCP
-
-/*
- *   Function: NwStack_write_data()
- *
- *   Return values:
- *   written bytes = success
- *   0 = failure
- */
-int
+size_t
 SeosNwChanmux_write_data(
     void*   buffer,
     size_t  len)
@@ -193,16 +170,7 @@ SeosNwChanmux_write_data(
     return written;
 }
 
-//------------------------------------------------------------------------------
-/*
- *   Function: NwStack_read_data()
- *
- *   Return values:
- *   read bytes = success
- *   0 = nothing to read
- */
-// called by PicoTCP
-int
+size_t
 SeosNwChanmux_read_data(
     void*   buffer,
     size_t  len)
@@ -220,16 +188,7 @@ SeosNwChanmux_read_data(
     return (SeosNwChanmux_chanRead(chan, buffer, len));
 }
 
-
-/*
- *   Function: NwChanmux_get_mac()
- *
- *   Return values:
- *   0 and gets the mac address filled
- */
-//------------------------------------------------------------------------------
-// called by PicoTCP
-int
+seos_err_t
 SeosNwChanmux_get_mac(
     char*     name,
     uint8_t*  mac)
@@ -239,7 +198,7 @@ SeosNwChanmux_get_mac(
     char response[8];
     uint8_t datachan, ctrlchan;
 
-    Debug_LOG_INFO("%s\n", __FUNCTION__);
+    Debug_LOG_TRACE("%s", __FUNCTION__);
     if (pnw_camkes->instanceID == SEOS_NWSTACK_AS_CLIENT)
     {
         datachan = CHANNEL_NW_STACK_DATA;
@@ -261,9 +220,9 @@ SeosNwChanmux_get_mac(
 
     if (result != sizeof(command))
     {
-        Debug_LOG_INFO("%s could not write OPEN cmd , result = %d\n", __FUNCTION__,
-                       result);
-        return -1;
+        Debug_LOG_ERROR("%s() could not write OPEN cmd,result=%d", __FUNCTION__,
+                        result);
+        return SEOS_ERROR_GENERIC;
     }
 
     /* Read back 2 bytes for OPEN CNF response, is a blocking call. Only 2 bytes required here, for mac it is 8 bytes */
@@ -272,9 +231,9 @@ SeosNwChanmux_get_mac(
 
     if (read != 2)
     {
-        Debug_LOG_INFO("%s could not read OPEN CNF response, result = %d\n",
-                       __FUNCTION__, result);
-        return -1;
+        Debug_LOG_ERROR("%s() could not read OPEN CNF response, result=%d",
+                        __FUNCTION__, result);
+        return SEOS_ERROR_GENERIC;
     }
     if (response[0] == NW_CTRL_CMD_OPEN_CNF)
     {
@@ -283,15 +242,15 @@ SeosNwChanmux_get_mac(
         command[0] = NW_CTRL_CMD_GETMAC;
         command[1] = datachan;   // this is required due to proxy
 
-        Debug_LOG_INFO("Sending Get mac cmd: \n");
+        Debug_LOG_INFO("Sending Get mac cmd:");
 
         unsigned result = SeosNwChanmux_chanWriteSyncCtrl(
                               command,
                               sizeof(command));
         if (result != sizeof(command))
         {
-            Debug_LOG_INFO("%s result = %d\n", __FUNCTION__, result);
-            return -1;
+            Debug_LOG_ERROR("%s() result = %d", __FUNCTION__, result);
+            return SEOS_ERROR_GENERIC;
         }
         size_t read = SeosNwChanmux_chanReadBlocking(
                           ctrlchan, response,
@@ -299,24 +258,23 @@ SeosNwChanmux_get_mac(
 
         if (read != sizeof(response))
         {
-            Debug_LOG_INFO("%s read = %d\n", __FUNCTION__, result);
-            return -1;
+            Debug_LOG_ERROR("%s() read=%d", __FUNCTION__, result);
+            return SEOS_ERROR_GENERIC;
         }
         /* response[1] must contain 0 as this is set by proxy when success */
         if ((NW_CTRL_CMD_GETMAC_CNF == response[0]) && (response[1] == 0))
         {
-            memcpy(mac, &response[2], 6);
-            Debug_LOG_INFO ( "exit %s mac received =%x %x %x %x %x %x \n", __FUNCTION__,
-                             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
-            const  uint8_t empty[6] = { 0, };
-            if (memcmp(mac, empty, 6) == 0)
+            memcpy(mac, &response[2], MAC_SIZE);
+            Debug_LOG_INFO("%s() mac received:%02x:%02x:%02x:%02x:%02x:%02x", __FUNCTION__,
+                           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
+            const uint8_t empty[MAC_SIZE] = {0};
+            if (memcmp(mac, empty, MAC_SIZE) == 0)
             {
-                return -1;    // recvd six 0's from proxy tap for mac. This is not good. Check for tap on proxy !!
+                Debug_LOG_ERROR("%s() Empty mac received 00:00:00:00:00:00", __FUNCTION__);
+                return SEOS_ERROR_GENERIC;    // recvd six 0's from proxy tap for mac. This is not good. Check for tap on proxy !!
             }
         }
 
     }
-    return 0;
+    return SEOS_SUCCESS;
 }
-
-

@@ -1,4 +1,4 @@
-# Netwotk Driver for TAP device via ChanMUX/Proxy
+# Network Driver for TAP device via ChanMUX/Proxy
 
 ## Dependencies
 

@@ -20,9 +20,7 @@ target_include_directories(${PROJECT_NAME}
         src/include
 )
 
-if (NETWORK_DRIVER_CONFIG_H_FILE)
-    target_compile_definitions(${PROJECT_NAME}
-        INTERFACE
-            NETWORK_DRIVER_CONFIG_H_FILE="${NETWORK_DRIVER_CONFIG_H_FILE}"
-    )
-endif()
+target_link_libraries(${PROJECT_NAME}
+    INTERFACE
+        seos_libs
+)
