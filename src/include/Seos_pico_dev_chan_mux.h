@@ -15,6 +15,7 @@
 #pragma once
 #include "pico_config.h"
 #include "pico_device.h"
+#include "seos_err.h"
 
 
 /**
@@ -38,9 +39,34 @@ void pico_chan_mux_tap_destroy ( struct pico_device* tap );
 
  * @ingroup Seos_pico_dev_chan_mux
  *
- * @param *name: the tap device which needs to be created (such as "tap0", "tap1" etc)
+ * @param void: none
  * @return pico_device *, pointer to device created.
  * @retval pico_device*
  */
 
-struct pico_device* pico_chan_mux_tap_create (char* name);
+struct pico_device* pico_chan_mux_tap_create (void);
+
+/**
+ * @brief   Seos_TapDriverConfig contains configuration of the driver. Must
+ *          be called before initialising Nw stack
+ * @ingroup Seos_pico_dev_chan_mux
+*/
+typedef struct
+{
+    char name[10];      /**< TAP Device name e.g. tap0, tap1 etc */
+    int  chan_ctrl;     /**< TAP ChanMux Ctrl channel */
+    int  chan_data;     /**< TAP ChanMux Data channel */
+} Seos_TapDriverConfig;
+
+/**
+ * @details: %Seos_NwDriver_TapConfig, configure the tap driver
+
+ * @ingroup Seos_pico_dev_chan_mux
+ * @param Seos_TapDriverConfig*: tap driver config filled by App or SEOS system.
+
+ * @return seos_err_t
+ * @retval SEOS_SUCCESS or SEOS_ERROR_GENERIC
+ *
+ */
+seos_err_t
+Seos_NwDriver_TapConfig(Seos_TapDriverConfig* nw_driver_config);
