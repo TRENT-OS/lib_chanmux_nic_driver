@@ -12,9 +12,11 @@
 #include "LibDebug/Debug.h"
 #include <stdint.h>
 #include <stddef.h>
+#include "Seos_pico_dev_chan_mux.h"
 
 extern Seos_nw_camkes_info* pnw_camkes;
 #define MAC_SIZE 6
+Seos_TapDriverConfig tapdrvconfig, *pTapdrv = &tapdrvconfig;
 
 size_t
 SeosNwChanmux_chanWriteSyncCtrl(
@@ -25,14 +27,7 @@ SeosNwChanmux_chanWriteSyncCtrl(
     void* ctrlwrbuf = pnw_camkes->pportsglu->ChanMuxCtrlPort;
     unsigned int chan;
 
-    if (pnw_camkes->instanceID == SEOS_NWSTACK_AS_CLIENT)
-    {
-        chan = CHANNEL_NW_STACK_CTRL;
-    }
-    else
-    {
-        chan = CHANNEL_NW_STACK_CTRL_2;
-    }
+    chan = pTapdrv->chan_ctrl;
 
     len = len < PAGE_SIZE ? len : PAGE_SIZE;
     // copy in the ctrl dataport
@@ -59,14 +54,7 @@ SeosNwChanmux_chanWriteSyncData(
     void* datawrbuf = pnw_camkes->pportsglu->ChanMuxDataPort;
     unsigned int chan;
 
-    if (pnw_camkes->instanceID == SEOS_NWSTACK_AS_CLIENT)
-    {
-        chan = CHANNEL_NW_STACK_DATA;
-    }
-    else
-    {
-        chan = CHANNEL_NW_STACK_DATA_2;
-    }
+    chan = pTapdrv->chan_data;
 
     while (len > 0)   // loop to send all data if > PAGE_SIZE = 4096
     {
@@ -105,28 +93,17 @@ SeosNwChanmux_chanRead(
 
     if (read)
     {
-        if (pnw_camkes->instanceID == SEOS_NWSTACK_AS_CLIENT)
+        if (chan == pTapdrv->chan_data) // it is normal data
         {
-            // Debug_ASSERT(read <= len);
-            if (chan == CHANNEL_NW_STACK_DATA)
-            {
-                memcpy(buf, chandataport, read);
-            }
-            else   // it is control data
-            {
-                memcpy(buf, chanctrlport, read);
-            }
+            memcpy(buf, chandataport, read);
+        }
+        else if (chan == pTapdrv->chan_ctrl) // it is control data
+        {
+            memcpy(buf, chanctrlport, read);
         }
         else
         {
-            if (chan == CHANNEL_NW_STACK_DATA_2)
-            {
-                memcpy(buf, chandataport, read);
-            }
-            else   // it is control data
-            {
-                memcpy(buf, chanctrlport, read);
-            }
+            Debug_LOG_ERROR("%s(): Wrong channel no passed", __FUNCTION__);
         }
 
     }
@@ -175,15 +152,7 @@ SeosNwChanmux_read_data(
     void*   buffer,
     size_t  len)
 {
-    unsigned int chan;
-    if (pnw_camkes->instanceID == SEOS_NWSTACK_AS_CLIENT)
-    {
-        chan = CHANNEL_NW_STACK_DATA;
-    }
-    else
-    {
-        chan = CHANNEL_NW_STACK_DATA_2;
-    }
+    unsigned int chan = pTapdrv->chan_data;
 
     return (SeosNwChanmux_chanRead(chan, buffer, len));
 }
@@ -196,23 +165,13 @@ SeosNwChanmux_get_mac(
 
     char command[2];
     char response[8];
-    uint8_t datachan, ctrlchan;
 
     Debug_LOG_TRACE("%s", __FUNCTION__);
-    if (pnw_camkes->instanceID == SEOS_NWSTACK_AS_CLIENT)
-    {
-        datachan = CHANNEL_NW_STACK_DATA;
-        ctrlchan = CHANNEL_NW_STACK_CTRL;
-    }
-    else
-    {
-        datachan = CHANNEL_NW_STACK_DATA_2;
-        ctrlchan = CHANNEL_NW_STACK_CTRL_2;
-    }
+
 
     /* First we send the OPEN and then the GETMAC cmd. This is for proxy which first needs to Open/activate the socket */
     command[0] = NW_CTRL_CMD_OPEN;
-    command[1] = datachan;
+    command[1] = pTapdrv->chan_data;
 
     unsigned result = SeosNwChanmux_chanWriteSyncCtrl(
                           command,
@@ -227,7 +186,7 @@ SeosNwChanmux_get_mac(
 
     /* Read back 2 bytes for OPEN CNF response, is a blocking call. Only 2 bytes required here, for mac it is 8 bytes */
 
-    size_t read = SeosNwChanmux_chanReadBlocking(ctrlchan, response, 2);
+    size_t read = SeosNwChanmux_chanReadBlocking(pTapdrv->chan_ctrl, response, 2);
 
     if (read != 2)
     {
@@ -240,7 +199,7 @@ SeosNwChanmux_get_mac(
         // now start reading the mac
 
         command[0] = NW_CTRL_CMD_GETMAC;
-        command[1] = datachan;   // this is required due to proxy
+        command[1] = pTapdrv->chan_data;   // this is required due to proxy
 
         Debug_LOG_INFO("Sending Get mac cmd:");
 
@@ -253,7 +212,7 @@ SeosNwChanmux_get_mac(
             return SEOS_ERROR_GENERIC;
         }
         size_t read = SeosNwChanmux_chanReadBlocking(
-                          ctrlchan, response,
+                          pTapdrv->chan_ctrl, response,
                           sizeof(response));
 
         if (read != sizeof(response))
