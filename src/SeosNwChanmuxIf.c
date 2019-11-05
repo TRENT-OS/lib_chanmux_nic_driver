@@ -13,10 +13,10 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "Seos_pico_dev_chan_mux.h"
+#include "Seos_Driver_Config.h"
 
 extern Seos_nw_camkes_info* pnw_camkes;
 #define MAC_SIZE 6
-Seos_TapDriverConfig tapdrvconfig, *pTapdrv = &tapdrvconfig;
 
 size_t
 SeosNwChanmux_chanWriteSyncCtrl(
@@ -26,6 +26,7 @@ SeosNwChanmux_chanWriteSyncCtrl(
     size_t written = 0;
     void* ctrlwrbuf = pnw_camkes->pportsglu->ChanMuxCtrlPort;
     unsigned int chan;
+    seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
 
     chan = pTapdrv->chan_ctrl;
 
@@ -53,6 +54,8 @@ SeosNwChanmux_chanWriteSyncData(
     size_t w_size = 0;
     void* datawrbuf = pnw_camkes->pportsglu->ChanMuxDataPort;
     unsigned int chan;
+
+    seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
 
     chan = pTapdrv->chan_data;
 
@@ -90,6 +93,7 @@ SeosNwChanmux_chanRead(
     }
     void* chanctrlport = pnw_camkes->pportsglu->ChanMuxCtrlPort;
     void* chandataport = pnw_camkes->pportsglu->ChanMuxDataPort;
+    seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
 
     if (read)
     {
@@ -152,6 +156,8 @@ SeosNwChanmux_read_data(
     void*   buffer,
     size_t  len)
 {
+    seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
+
     unsigned int chan = pTapdrv->chan_data;
 
     return (SeosNwChanmux_chanRead(chan, buffer, len));
@@ -159,7 +165,6 @@ SeosNwChanmux_read_data(
 
 seos_err_t
 SeosNwChanmux_get_mac(
-    char*     name,
     uint8_t*  mac)
 {
 
@@ -167,6 +172,8 @@ SeosNwChanmux_get_mac(
     char response[8];
 
     Debug_LOG_TRACE("%s", __FUNCTION__);
+
+    seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
 
 
     /* First we send the OPEN and then the GETMAC cmd. This is for proxy which first needs to Open/activate the socket */

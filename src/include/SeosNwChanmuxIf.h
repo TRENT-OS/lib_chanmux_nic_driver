@@ -176,8 +176,6 @@ SeosNwChanmux_read_data(
  * @details %SeosNwChanmux_get_mac, is an interface for picotcp to use Chanmux to get the tap mac address.
  * @ingroup SeosNwChanmuxIf
 
- * @param *name: name of the tap of which mac addr is requested (e.g. "tap0" or "tap1" etc)
-
  * @param *mac: will contain the mac addr filled
 
  * @return Mac addr filled for tap
@@ -187,5 +185,4 @@ SeosNwChanmux_read_data(
 
 seos_err_t
 SeosNwChanmux_get_mac(
-    char*     name,
     uint8_t*  mac);

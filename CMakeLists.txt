@@ -13,6 +13,7 @@ target_sources(${PROJECT_NAME}
     INTERFACE
         src/Seos_pico_dev_chan_mux.c
         src/SeosNwChanmuxIf.c
+        src/Seos_Driver_Config.c
 )
 
 target_include_directories(${PROJECT_NAME}
