@@ -15,7 +15,7 @@
 #pragma once
 #include "pico_config.h"
 #include "pico_device.h"
-#include "seos_err.h"
+#include "SeosError.h"
 
 
 /**

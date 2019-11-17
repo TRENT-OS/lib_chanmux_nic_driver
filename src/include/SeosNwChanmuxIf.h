@@ -17,7 +17,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include "seos_err.h"
+#include "SeosError.h"
 
 /**
  * @details %ChanMux_write, Write data using ChanMux
