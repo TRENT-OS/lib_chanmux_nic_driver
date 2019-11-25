@@ -104,16 +104,14 @@ struct pico_device* pico_chan_mux_tap_create(void)
 
     if (!chan_mux_tap)
     {
-        Debug_LOG_ERROR("%s():Memory alloc failure for tap device",
-                        __FUNCTION__);
+        Debug_LOG_ERROR("memory alloc failure for tap device");
         return NULL;
     }
 
     seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
     if (!pTapdrv)
     {
-        Debug_LOG_ERROR("%s():Incorrect Tap Driver Config",
-                        __FUNCTION__);
+        Debug_LOG_ERROR("invalid driver configuration");
         pico_chan_mux_tap_destroy((struct pico_device*)chan_mux_tap);
         return NULL;
     }
@@ -130,8 +128,7 @@ struct pico_device* pico_chan_mux_tap_create(void)
     err = SeosNwChanmux_open(&channel_ctrl, chan_id_data);
     if (err != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("%s(): SeosNwChanmux_open failed, error:%d",
-                        __FUNCTION__, err);
+        Debug_LOG_ERROR("SeosNwChanmux_open() failed, error %d", err);
         pico_chan_mux_tap_destroy((struct pico_device*)chan_mux_tap);
         return NULL;
     }
@@ -140,8 +137,7 @@ struct pico_device* pico_chan_mux_tap_create(void)
     err = SeosNwChanmux_get_mac(&channel_ctrl, chan_id_data, mac);
     if (err != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("%s(): SeosNwChanmux_get_mac failed, error:%d",
-                        __FUNCTION__, err);
+        Debug_LOG_ERROR("SeosNwChanmux_get_mac() failed, error %d", err);
 
         // ToDo: close SeosNwChanmux chnnel
 
@@ -149,18 +145,17 @@ struct pico_device* pico_chan_mux_tap_create(void)
         return NULL;
     }
 
-    Debug_LOG_INFO("%s() MAC is %02x:%02x:%02x:%02x:%02x:%02x",
-                   __FUNCTION__,
-                   mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
-
     // sanity check, the MAC address can't be all zero.
     const uint8_t empty_mac[MAC_SIZE] = {0};
     if (memcmp(mac, empty_mac, MAC_SIZE) == 0)
     {
-        Debug_LOG_ERROR("%s() empty MAC is not allowed", __FUNCTION__);
+        Debug_LOG_ERROR("MAC with all zeros is not allowed");
         pico_chan_mux_tap_destroy((struct pico_device*)chan_mux_tap);
         return NULL;
     }
+
+    Debug_LOG_INFO("MAC is %02x:%02x:%02x:%02x:%02x:%02x",
+                   mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
 
     // ToDo: the proxy is supposed to emulate a network interface with a proper
     //       MAC address. Currently, with the TUN/TAp device it connects to in
@@ -173,7 +168,7 @@ struct pico_device* pico_chan_mux_tap_create(void)
     int ret = pico_device_init((struct pico_device*)chan_mux_tap, drv_name, mac);
     if (0 != ret)
     {
-        Debug_LOG_ERROR("%s():Tap device init failed, ret = %d", __FUNCTION__, ret);
+        Debug_LOG_ERROR("pico_device_init() failed, error %d", ret);
         pico_chan_mux_tap_destroy((struct pico_device*)chan_mux_tap);
         return NULL;
     }
@@ -182,7 +177,7 @@ struct pico_device* pico_chan_mux_tap_create(void)
     chan_mux_tap->dev.poll      = pico_chan_mux_tap_poll;
     chan_mux_tap->dev.destroy   = pico_chan_mux_tap_destroy;
 
-    Debug_LOG_INFO("Device %s created", drv_name);
+    Debug_LOG_INFO("device '%s' created", drv_name);
 
     return (struct pico_device*)chan_mux_tap;
 }

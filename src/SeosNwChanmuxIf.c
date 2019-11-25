@@ -39,7 +39,7 @@ SeosNwChanmux_chanWriteSyncCtrl(
     seos_err_t ret = ChanMux_write(ctrl_channel->id, len, pLen);
     if (ret != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("ChanMux_write() failed with error %d", ret);
+        Debug_LOG_ERROR("ChanMux_write() failed, error %d", ret);
         return SEOS_ERROR_GENERIC;
     }
 
@@ -68,7 +68,7 @@ SeosNwChanmux_chanWriteSyncData(
         seos_err_t err = ChanMux_write(channel->id, len, &written);
         if (err != SEOS_SUCCESS)
         {
-            Debug_LOG_ERROR("%s(),Error in writing, err= %d", __FUNCTION__, err);
+            Debug_LOG_ERROR("ChanMux_write() failed, error %d", err);
             break;
         }
         w_size = +written;
@@ -90,7 +90,7 @@ SeosNwChanmux_chanRead(
     seos_err_t err = ChanMux_read(channel->id, len, &read);
     if (err != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("%s(),Error in reading, err= %d", __FUNCTION__, err);
+        Debug_LOG_ERROR("ChanMux_read() failed, error %d", err);
         return read;
     }
 
