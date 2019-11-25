@@ -6,7 +6,6 @@
  *
  */
 
-#include "SeosNwCommon.h"
 #include "SeosNwChanmuxIf.h"
 #include <string.h>
 #include "LibDebug/Debug.h"
@@ -14,6 +13,7 @@
 #include <stddef.h>
 #include <limits.h>
 #include "seos_ethernet.h"
+#include "seos_chanmux_ethernet.h"
 
 static size_t
 SeosNwChanmux_chanWriteSyncCtrl(
