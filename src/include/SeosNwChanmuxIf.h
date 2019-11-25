@@ -23,12 +23,7 @@
  * @details %ChanMux_write, Write data using ChanMux
  *
  * @ingroup SeosNwChanmuxIf
- * @param chan: Can take values. Possible values
-                CHANNEL_NW_STACK_DATA
-                CHANNEL_NW_STACK_DATA_2
-                CHANNEL_NW_STACK_CTRL
-                CHANNEL_NW_STACK_CTRL_2
-
+ * @param chan: channel
  * @param len: Length of data to write
  * @param *written: is pointer to written which will contain how much of data was
                     actually written by Chanmux
@@ -36,63 +31,59 @@
  * @retval SEOS_SUCCESS or SEOS_ERROR_GENERIC
  *
  */
+seos_err_t ChanMux_write(
+    unsigned int  chan,
+    size_t        len,
+    size_t*       written);
 
-seos_err_t ChanMux_write(unsigned int chan, size_t len, size_t* written);
 
 /**
  * @details %ChanMux_read, Read data using ChanMux
  * @ingroup SeosNwChanmuxIf
-
- * @param chan: Can take values. Possible values
-                CHANNEL_NW_STACK_DATA
-                CHANNEL_NW_STACK_DATA_2
-                CHANNEL_NW_STACK_CTRL
-                CHANNEL_NW_STACK_CTRL_2
-
+ *
+ * @param chan: channel
  * @param len: Length of data to read
-
  * @param *read: is pointer to read which will contain how much of data was
-                 actually read by Chanmux
+ *               actually read by Chanmux
  * @return Success or Failure.
  * @retval SEOS_SUCCESS or SEOS_ERROR_GENERIC
  *
  */
-
-seos_err_t ChanMux_read(unsigned int chan, size_t len, size_t* read);
+seos_err_t ChanMux_read(
+    unsigned int  chan,
+    size_t        len,
+    size_t*       read);
 
 
 /**
  * @details %SeosNwChanmux_chanWriteSyncData, Write wrapper for ChanMux_write Data channel
  * @ingroup SeosNwChanmuxIf
-
+ *
  * @param *buf: Pointer of the data buffer containing data to be written
 
  * @param len: Length of data to write
-
+ *
  * @return Total number of bytes written
  * @retval length
  *
  */
-
 size_t
 SeosNwChanmux_chanWriteSyncData(
     const void*   buf,
     size_t        len);
 
+
 /**
- * @details %SeosNwChanmux_chanWriteSyncCtrl, Write wrapper for ChanMux_write Ctrl channel
+ * @details %SeosNwChanmux_chanRead, Read wrapper for ChanMux_Read non Blocking
  * @ingroup SeosNwChanmuxIf
-
- * @param *buf: Pointer of the data buffer containing data to be written
-
- * @param len: Length of data to write
-
- * @return Total number of bytes written
-
- * @retval length
+ *
+ * @param chan: Chanmux Channel number to read from
+ * @param buf: Buffer to read data into
+ *
+ * @return Total number of bytes read
+ * @retval length of bytes read
  *
  */
-
 size_t
 SeosNwChanmux_chanRead(
     unsigned int  chan,
@@ -103,16 +94,15 @@ SeosNwChanmux_chanRead(
 /**
  * @details %SeosNwChanmux_chanReadBlocking, this is a wrapper for Chanmux_read. It is a blocking read.
  * @ingroup SeosNwChanmuxIf
-
+ *
  * @param chan: Chanmux Channel number to read from
-   @param buf:  Pointer of the data buffer to be read into
+ * @param buf:  Pointer of the data buffer to be read into
  * @param len:  is the length of data to read
-
+ *
  * @return Total number of bytes read
  * @retval length of bytes read
  *
  */
-
 size_t
 SeosNwChanmux_chanReadBlocking(
     unsigned int  chan,
@@ -123,11 +113,10 @@ SeosNwChanmux_chanReadBlocking(
 /**
  * @details %SeosNwChanmux_write_data, PicoTCP uses this API as an interface to use Chanmux.
  * @ingroup SeosNwChanmuxIf
-
+ *
  * @param *buffer: Pointer of the data buffer containing data to be written
-
  * @param len: is the length of the data to write
-
+ *
  * @return Total number of bytes written
  * @retval length written
  *
@@ -137,14 +126,14 @@ SeosNwChanmux_write_data(
     void*   buffer,
     size_t  len);
 
+
 /**
  * @details %SeosNwChanmux_read_data, PicoTCP uses this API as an interface to use Chanmux.
  * @ingroup SeosNwChanmuxIf
-
+ *
  * @param *buffer: Pointer of the data buffer containing data to be read into
-
  * @param len:  is the length of data to read
-
+ *
  * @return Total number of bytes read
  * @retval length read
  *
@@ -153,6 +142,7 @@ size_t
 SeosNwChanmux_read_data(
     void*   buffer,
     size_t  len);
+
 
 /**
  * @details open ethernet device simulated via ChanMUX
@@ -166,8 +156,8 @@ SeosNwChanmux_read_data(
  */
 seos_err_t
 SeosNwChanmux_open(
-    unsigned int chn_ctrl,
-    unsigned int chn_data);
+    unsigned int  chn_ctrl,
+    unsigned int  chn_data);
 
 
 /**
