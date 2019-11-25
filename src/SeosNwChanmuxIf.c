@@ -15,25 +15,35 @@
 #include "seos_ethernet.h"
 #include "seos_chanmux_ethernet.h"
 
-static size_t
+
+//------------------------------------------------------------------------------
+static seos_err_t
 SeosNwChanmux_chanWriteSyncCtrl(
     const ChanMux_channelCtx_t*  ctrl_channel,
     const void*                  buf,
-    size_t                       len)
+    size_t*                      pLen)
 {
-    len = (len < PAGE_SIZE) ? len : PAGE_SIZE;
+    size_t len = *pLen;
+    *pLen = 0;
+
+    if (len > PAGE_SIZE)
+    {
+        Debug_LOG_ERROR("len (%zu) bigger than max len (%d)", len, PAGE_SIZE);
+        return SEOS_ERROR_GENERIC;
+    }
+
     // copy in the ctrl dataport
     memcpy(ctrl_channel->data_port, buf, len);
 
     // tell the other side how much data we want to send and in which channel
-    size_t written = 0;
-    seos_err_t err = ChanMux_write(ctrl_channel->id, len, &written);
-    if (err != SEOS_SUCCESS)
+    seos_err_t ret = ChanMux_write(ctrl_channel->id, len, pLen);
+    if (ret != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("%s(),Error in writing, err= %d", __FUNCTION__, err);
+        Debug_LOG_ERROR("ChanMux_write() failed with error %d", ret);
+        return SEOS_ERROR_GENERIC;
     }
 
-    return written;
+    return SEOS_SUCCESS;
 }
 
 
@@ -128,16 +138,21 @@ SeosNwChanmux_open(
     const  ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                  chan_id_data)
 {
-    size_t ret;
-
     Debug_LOG_TRACE("%s", __FUNCTION__);
+    seos_err_t ret;
 
     uint8_t cmd[2] = { NW_CTRL_CMD_OPEN, chan_id_data };
-    ret = SeosNwChanmux_chanWriteSyncCtrl(channel_ctrl, cmd, sizeof(cmd));
-    if (ret != sizeof(cmd))
+    size_t len = sizeof(cmd);
+    ret = SeosNwChanmux_chanWriteSyncCtrl(channel_ctrl, cmd, &len);
+    if (ret != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("%s() send command OPEN failed, result=%zu",
-                        __FUNCTION__, ret);
+        Debug_LOG_ERROR("sending OPEN returned error %d", ret);
+        return SEOS_ERROR_GENERIC;
+    }
+    if (len != sizeof(cmd))
+    {
+        Debug_LOG_ERROR("sending OPEN failed, ret_len %zu, expected %zu",
+                        len, sizeof(cmd));
         return SEOS_ERROR_GENERIC;
     }
 
@@ -146,16 +161,14 @@ SeosNwChanmux_open(
     ret = SeosNwChanmux_chanReadBlocking(channel_ctrl, rsp, sizeof(rsp));
     if (ret != sizeof(rsp))
     {
-        Debug_LOG_ERROR("%s() read response for OPEN failed, result=%zu",
-                        __FUNCTION__, ret);
+        Debug_LOG_ERROR("reading response for OPEN returned error %d", ret);
         return SEOS_ERROR_GENERIC;
     }
 
     uint8_t rsp_result = rsp[0];
     if (rsp_result != NW_CTRL_CMD_OPEN_CNF)
     {
-        Debug_LOG_ERROR("%s() cmd OPEN failed, return code %u",
-                        __FUNCTION__, rsp_result);
+        Debug_LOG_ERROR("command OPEN failed, status code %u", rsp_result);
         return SEOS_ERROR_GENERIC;
     }
 
@@ -170,16 +183,21 @@ SeosNwChanmux_get_mac(
     unsigned int                 chan_id_data,
     uint8_t*                     mac)
 {
-    size_t ret;
-
     Debug_LOG_TRACE("%s", __FUNCTION__);
+    seos_err_t ret;
 
     uint8_t cmd[2] = { NW_CTRL_CMD_GETMAC, chan_id_data };
-    ret = SeosNwChanmux_chanWriteSyncCtrl(channel_ctrl, cmd, sizeof(cmd));
-    if (ret != sizeof(cmd))
+    size_t len = sizeof(cmd);
+    ret = SeosNwChanmux_chanWriteSyncCtrl(channel_ctrl, cmd, &len);
+    if (ret != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("%s() send command GETMAC failed, result=%zu",
-                        __FUNCTION__, ret);
+        Debug_LOG_ERROR("sending GETMAC returned error %d", ret);
+        return SEOS_ERROR_GENERIC;
+    }
+    if (len != sizeof(cmd))
+    {
+        Debug_LOG_ERROR("sending GETMAC failed, ret_len %zu, expected %zu",
+                        len, sizeof(cmd));
         return SEOS_ERROR_GENERIC;
     }
 
@@ -188,25 +206,21 @@ SeosNwChanmux_get_mac(
     ret = SeosNwChanmux_chanReadBlocking(channel_ctrl, rsp, sizeof(rsp));
     if (ret != sizeof(rsp))
     {
-        Debug_LOG_ERROR("%s() read response for GETMAC failed, result=%zu",
-                        __FUNCTION__, ret);
-
+        Debug_LOG_ERROR("reading response for GETMAC returned error %d", ret);
         return SEOS_ERROR_GENERIC;
     }
 
     uint8_t rsp_result = rsp[0];
     if (rsp_result != NW_CTRL_CMD_GETMAC_CNF)
     {
-        Debug_LOG_ERROR("%s() cmd GETMAC response error, return code %u",
-                        __FUNCTION__, rsp_result);
+        Debug_LOG_ERROR("command GETMAC failed, status code %u", rsp_result);
         return SEOS_ERROR_GENERIC;
     }
 
     uint8_t rsp_ctx = rsp[1];
     if (rsp_ctx != 0)
     {
-        Debug_LOG_ERROR("%s() cmd GETMAC response ctx error, found %u",
-                        __FUNCTION__, rsp_ctx);
+        Debug_LOG_ERROR("command GETMAC response ctx error, found %u", rsp_ctx);
         return SEOS_ERROR_GENERIC;
     }
 
