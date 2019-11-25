@@ -68,11 +68,6 @@ static int pico_chan_mux_tap_open(void)
     return 0;
 }
 
-static int pico_chan_mux_tap_get_mac(uint8_t* mac)
-{
-    return SeosNwChanmux_get_mac(mac);
-}
-
 struct pico_device* pico_chan_mux_tap_create(void)
 {
     struct pico_device_chan_mux_tap* chan_mux_tap = PICO_ZALLOC(sizeof (
@@ -100,7 +95,7 @@ struct pico_device* pico_chan_mux_tap_create(void)
         pico_chan_mux_tap_destroy((struct pico_device*)chan_mux_tap);
         return NULL;
     }
-    err = pico_chan_mux_tap_get_mac(mac);
+    err = SeosNwChanmux_get_mac(mac);
     if (err != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("%s():mac query failed with error:%d", __FUNCTION__, err);
