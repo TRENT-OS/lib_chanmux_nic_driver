@@ -45,7 +45,7 @@ static int pico_chan_mux_tap_poll(struct pico_device* dev, int loop_score)
      */
     while (loop_score > 0)
     {
-        len = SeosNwChanmux_read_data(buf, TUN_MTU);
+        len = SeosNwChanmux_read_data(buf, sizeof(buf));
         if (len <= 0)
         {
             return loop_score;
