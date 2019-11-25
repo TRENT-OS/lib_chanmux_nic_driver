@@ -13,6 +13,7 @@
 #include "seos_ethernet.h"
 #include "Seos_pico_dev_chan_mux.h"
 #include "pico_stack.h"
+#include "SeosNwStack.h"
 #include "SeosNwChanmuxIf.h"
 #include "Seos_Driver_Config.h"
 
@@ -24,6 +25,7 @@ struct pico_device_chan_mux_tap
 
 #define TUN_MTU     4096 /* This value is chosen due to PAGE_SIZE of platform */
 
+extern Seos_nw_camkes_info* pnw_camkes;
 
 //------------------------------------------------------------------------------
 // callback fuction for PicoTCP
@@ -33,7 +35,15 @@ pico_chan_mux_tap_send(
     void*                buf,
     int                  len)
 {
-    return SeosNwChanmux_write_data(buf, len);
+    seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
+
+    const ChanMux_channelCtx_t channel_data =
+    {
+        .data_port  = pnw_camkes->pportsglu->ChanMuxDataPort,
+        .id         = pTapdrv->chan_data
+    };
+
+    return SeosNwChanmux_chanWriteSyncData(&channel_data, buf, len);
 }
 
 
@@ -44,21 +54,31 @@ pico_chan_mux_tap_poll(
     struct pico_device*  dev,
     int                  loop_score)
 {
+    seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
+
+    const ChanMux_channelCtx_t channel_data =
+    {
+        .data_port  = pnw_camkes->pportsglu->ChanMuxDataPort,
+        .id         = pTapdrv->chan_data
+    };
+
+
     unsigned char buf[TUN_MTU];
-    int len;
 
     // loop_score indicates max number of frames that PicoTCP can read in this
     // call.
     while (loop_score > 0)
     {
-        len = SeosNwChanmux_read_data(buf, sizeof(buf));
+        int len = SeosNwChanmux_chanRead(&channel_data, buf, sizeof(buf));
         if (len <= 0)
         {
             return loop_score;
         }
+
         loop_score--;
         pico_stack_recv(dev, buf, (uint32_t)len);
     }
+
     return 0;
 }
 
@@ -98,10 +118,16 @@ struct pico_device* pico_chan_mux_tap_create(void)
         return NULL;
     }
 
-    unsigned int chn_ctrl = pTapdrv->chan_ctrl;
-    unsigned int chn_data = pTapdrv->chan_data;
+    const ChanMux_channelCtx_t channel_ctrl =
+    {
+        .data_port  = pnw_camkes->pportsglu->ChanMuxCtrlPort,
+        .id         = pTapdrv->chan_ctrl
+    };
 
-    err = SeosNwChanmux_open(chn_ctrl, chn_data);
+    unsigned int chan_id_data = pTapdrv->chan_data;
+
+
+    err = SeosNwChanmux_open(&channel_ctrl, chan_id_data);
     if (err != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("%s(): SeosNwChanmux_open failed, error:%d",
@@ -111,7 +137,7 @@ struct pico_device* pico_chan_mux_tap_create(void)
     }
 
     // ChanMUX simulates an etehrnet device, get the MAC address from it
-    err = SeosNwChanmux_get_mac(chn_ctrl, chn_data, mac);
+    err = SeosNwChanmux_get_mac(&channel_ctrl, chan_id_data, mac);
     if (err != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("%s(): SeosNwChanmux_get_mac failed, error:%d",

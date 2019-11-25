@@ -19,6 +19,13 @@
 #include <stdint.h>
 #include "SeosError.h"
 
+typedef struct
+{
+    void*          data_port;
+    unsigned int   id;
+} ChanMux_channelCtx_t;
+
+
 /**
  * @details %ChanMux_write, Write data using ChanMux
  *
@@ -59,6 +66,7 @@ seos_err_t ChanMux_read(
  * @details %SeosNwChanmux_chanWriteSyncData, Write wrapper for ChanMux_write Data channel
  * @ingroup SeosNwChanmuxIf
  *
+ * @param chan: channel
  * @param *buf: Pointer of the data buffer containing data to be written
 
  * @param len: Length of data to write
@@ -69,15 +77,16 @@ seos_err_t ChanMux_read(
  */
 size_t
 SeosNwChanmux_chanWriteSyncData(
-    const void*   buf,
-    size_t        len);
+    const ChanMux_channelCtx_t*  channel,
+    const void*                  buf,
+    size_t                       len);
 
 
 /**
  * @details %SeosNwChanmux_chanRead, Read wrapper for ChanMux_Read non Blocking
  * @ingroup SeosNwChanmuxIf
  *
- * @param chan: Chanmux Channel number to read from
+ * @param channel: channel context
  * @param buf: Buffer to read data into
  *
  * @return Total number of bytes read
@@ -86,86 +95,33 @@ SeosNwChanmux_chanWriteSyncData(
  */
 size_t
 SeosNwChanmux_chanRead(
-    unsigned int  chan,
-    void*         buf,
-    size_t        len);
-
-
-/**
- * @details %SeosNwChanmux_chanReadBlocking, this is a wrapper for Chanmux_read. It is a blocking read.
- * @ingroup SeosNwChanmuxIf
- *
- * @param chan: Chanmux Channel number to read from
- * @param buf:  Pointer of the data buffer to be read into
- * @param len:  is the length of data to read
- *
- * @return Total number of bytes read
- * @retval length of bytes read
- *
- */
-size_t
-SeosNwChanmux_chanReadBlocking(
-    unsigned int  chan,
-    char*         buf,
-    size_t        len);
-
-
-/**
- * @details %SeosNwChanmux_write_data, PicoTCP uses this API as an interface to use Chanmux.
- * @ingroup SeosNwChanmuxIf
- *
- * @param *buffer: Pointer of the data buffer containing data to be written
- * @param len: is the length of the data to write
- *
- * @return Total number of bytes written
- * @retval length written
- *
- */
-size_t
-SeosNwChanmux_write_data(
-    void*   buffer,
-    size_t  len);
-
-
-/**
- * @details %SeosNwChanmux_read_data, PicoTCP uses this API as an interface to use Chanmux.
- * @ingroup SeosNwChanmuxIf
- *
- * @param *buffer: Pointer of the data buffer containing data to be read into
- * @param len:  is the length of data to read
- *
- * @return Total number of bytes read
- * @retval length read
- *
- */
-size_t
-SeosNwChanmux_read_data(
-    void*   buffer,
-    size_t  len);
+    const ChanMux_channelCtx_t*  channel,
+    void*                        buf,
+    size_t                       len);
 
 
 /**
  * @details open ethernet device simulated via ChanMUX
  * @ingroup SeosNwChanmuxIf
  *
- * @param chn_ctrl control channel
- * @param chn_data data channel
+ * @param channel_ctrl control channel
+ * @param chan_id_data data channel
  *
  * @retval SEOS_SUCCESS or error code
  *
  */
 seos_err_t
 SeosNwChanmux_open(
-    unsigned int  chn_ctrl,
-    unsigned int  chn_data);
+    const ChanMux_channelCtx_t*  channel_ctrl,
+    unsigned int                 chan_id_data);
 
 
 /**
  * @details get MAC from ethernet device simulated via ChanMUX
  * @ingroup SeosNwChanmuxIf
  *
- * @param chn_ctrl control channel
- * @param chn_data data channel
+ * @param channel_ctrl control channel
+ * @param chan_id_data data channel
  * @param mac recevied the MAC
  *
  * @retval SEOS_SUCCESS or error code
@@ -173,6 +129,6 @@ SeosNwChanmux_open(
  */
 seos_err_t
 SeosNwChanmux_get_mac(
-    unsigned int  chn_ctrl,
-    unsigned int  chn_data,
-    uint8_t*      mac);
+    const ChanMux_channelCtx_t*  channel_ctrl,
+    unsigned int                 chan_id_data,
+    uint8_t*                     mac);
