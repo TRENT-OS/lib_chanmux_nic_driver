@@ -10,6 +10,7 @@
 #include <net/if.h>
 #include "pico_device.h"
 #include "LibDebug/Debug.h"
+#include "seos_ethernet.h"
 #include "Seos_pico_dev_chan_mux.h"
 #include "pico_stack.h"
 #include "SeosNwChanmuxIf.h"
@@ -76,7 +77,7 @@ struct pico_device* pico_chan_mux_tap_create(void)
 {
     struct pico_device_chan_mux_tap* chan_mux_tap = PICO_ZALLOC(sizeof (
             struct pico_device_chan_mux_tap));
-    uint8_t mac[6] = {0};
+    uint8_t mac[MAC_SIZE] = {0};
     seos_err_t err;
     const char* drv_name = "tapdriver";
 
@@ -112,7 +113,7 @@ struct pico_device* pico_chan_mux_tap_create(void)
      * For simplicity, we just add 1 to the last byte of the linux
      * endpoint so the two addresses are consecutive.
      */
-    mac[5]++;
+    mac[MAC_SIZE - 1]++;
 
     if (0 != pico_device_init((struct pico_device*)chan_mux_tap, drv_name,
                               mac))

@@ -12,11 +12,11 @@
 #include "LibDebug/Debug.h"
 #include <stdint.h>
 #include <stddef.h>
+#include "seos_ethernet.h"
 #include "Seos_pico_dev_chan_mux.h"
 #include "Seos_Driver_Config.h"
 
 extern Seos_nw_camkes_info* pnw_camkes;
-#define MAC_SIZE 6
 
 size_t
 SeosNwChanmux_chanWriteSyncCtrl(
