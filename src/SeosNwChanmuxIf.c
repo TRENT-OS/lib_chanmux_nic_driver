@@ -30,7 +30,7 @@ SeosNwChanmux_chanWriteSyncCtrl(
 
     chan = pTapdrv->chan_ctrl;
 
-    len = len < PAGE_SIZE ? len : PAGE_SIZE;
+    len = (len < PAGE_SIZE) ? len : PAGE_SIZE;
     // copy in the ctrl dataport
     memcpy(ctrlwrbuf, buf, len);
 
@@ -61,7 +61,7 @@ SeosNwChanmux_chanWriteSyncData(
 
     while (len > 0)   // loop to send all data if > PAGE_SIZE = 4096
     {
-        len = len < PAGE_SIZE ? len : PAGE_SIZE;
+        len = (len < PAGE_SIZE) ? len : PAGE_SIZE;
         // copy in the normal dataport
         memcpy(datawrbuf, buf + w_size, len);
         // tell the other side how much data we want to send and in which channel
