@@ -94,24 +94,6 @@ SeosNwChanmux_chanWriteSyncData(
  */
 
 size_t
-SeosNwChanmux_chanWriteSyncCtrl(
-    const void*   buf,
-    size_t        len);
-
-/**
- * @details %SeosNwChanmux_chanRead, Read wrapper for ChanMux_Read non Blocking
- * @ingroup SeosNwChanmuxIf
- * @param chan: Chanmux Channel number to read from
-
- * @param buf: Buffer to read data into
-
- * @return Total number of bytes read
-
- * @retval length of bytes read
- *
- */
-
-size_t
 SeosNwChanmux_chanRead(
     unsigned int  chan,
     void*         buf,
@@ -173,16 +155,34 @@ SeosNwChanmux_read_data(
     size_t  len);
 
 /**
- * @details %SeosNwChanmux_get_mac, is an interface for picotcp to use Chanmux to get the tap mac address.
+ * @details open ethernet device simulated via ChanMUX
  * @ingroup SeosNwChanmuxIf
-
- * @param *mac: will contain the mac addr filled
-
- * @return Mac addr filled for tap
- * @retval Mac addr filled
+ *
+ * @param chn_ctrl control channel
+ * @param chn_data data channel
+ *
+ * @retval SEOS_SUCCESS or error code
  *
  */
+seos_err_t
+SeosNwChanmux_open(
+    unsigned int chn_ctrl,
+    unsigned int chn_data);
 
+
+/**
+ * @details get MAC from ethernet device simulated via ChanMUX
+ * @ingroup SeosNwChanmuxIf
+ *
+ * @param chn_ctrl control channel
+ * @param chn_data data channel
+ * @param mac recevied the MAC
+ *
+ * @retval SEOS_SUCCESS or error code
+ *
+ */
 seos_err_t
 SeosNwChanmux_get_mac(
-    uint8_t*  mac);
+    unsigned int  chn_ctrl,
+    unsigned int  chn_data,
+    uint8_t*      mac);

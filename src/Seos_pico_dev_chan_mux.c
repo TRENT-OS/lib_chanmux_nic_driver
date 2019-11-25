@@ -88,10 +88,39 @@ struct pico_device* pico_chan_mux_tap_create(void)
         pico_chan_mux_tap_destroy((struct pico_device*)chan_mux_tap);
         return NULL;
     }
-    err = SeosNwChanmux_get_mac(mac);
+
+    unsigned int chn_ctrl = pTapdrv->chan_ctrl;
+    unsigned int chn_data = pTapdrv->chan_data;
+
+    err = SeosNwChanmux_open(chn_ctrl, chn_data);
     if (err != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("%s():mac query failed with error:%d", __FUNCTION__, err);
+        Debug_LOG_ERROR("%s(): SeosNwChanmux_open failed, error:%d",
+                        __FUNCTION__, err);
+        pico_chan_mux_tap_destroy((struct pico_device*)chan_mux_tap);
+        return NULL;
+    }
+
+    err = SeosNwChanmux_get_mac(chn_ctrl, chn_data, mac);
+    if (err != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("%s(): SeosNwChanmux_get_mac failed, error:%d",
+                        __FUNCTION__, err);
+
+        // ToDo: close SeosNwChanmux chnnel
+
+        pico_chan_mux_tap_destroy((struct pico_device*)chan_mux_tap);
+        return NULL;
+    }
+
+    Debug_LOG_INFO("%s() MAC is %02x:%02x:%02x:%02x:%02x:%02x",
+                   __FUNCTION__,
+                   mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
+
+    const uint8_t empty_mac[MAC_SIZE] = {0};
+    if (memcmp(mac, empty_mac, MAC_SIZE) == 0)
+    {
+        Debug_LOG_ERROR("%s() empty MAC is not allowed", __FUNCTION__);
         pico_chan_mux_tap_destroy((struct pico_device*)chan_mux_tap);
         return NULL;
     }

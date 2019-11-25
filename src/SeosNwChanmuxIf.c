@@ -18,7 +18,7 @@
 
 extern Seos_nw_camkes_info* pnw_camkes;
 
-size_t
+static size_t
 SeosNwChanmux_chanWriteSyncCtrl(
     const void*   buf,
     size_t        len)
@@ -163,84 +163,96 @@ SeosNwChanmux_read_data(
     return (SeosNwChanmux_chanRead(chan, buffer, len));
 }
 
-seos_err_t
-SeosNwChanmux_get_mac(
-    uint8_t*  mac)
-{
 
-    char command[2];
-    char response[8];
+//------------------------------------------------------------------------------
+seos_err_t
+SeosNwChanmux_open(
+    unsigned int chn_ctrl,
+    unsigned int chn_data)
+{
+    size_t ret;
 
     Debug_LOG_TRACE("%s", __FUNCTION__);
 
-    seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
-
-
-    /* First we send the OPEN and then the GETMAC cmd. This is for proxy which first needs to Open/activate the socket */
-    command[0] = NW_CTRL_CMD_OPEN;
-    command[1] = pTapdrv->chan_data;
-
-    unsigned result = SeosNwChanmux_chanWriteSyncCtrl(
-                          command,
-                          sizeof(command));
-
-    if (result != sizeof(command))
+    char cmd[2] = { NW_CTRL_CMD_OPEN, chn_data };
+    ret = SeosNwChanmux_chanWriteSyncCtrl(cmd, sizeof(cmd));
+    if (ret != sizeof(cmd))
     {
-        Debug_LOG_ERROR("%s() could not write OPEN cmd,result=%d", __FUNCTION__,
-                        result);
+        Debug_LOG_ERROR("%s() send command OPEN failed, result=%zu",
+                        __FUNCTION__, ret);
         return SEOS_ERROR_GENERIC;
     }
 
-    /* Read back 2 bytes for OPEN CNF response, is a blocking call. Only 2 bytes required here, for mac it is 8 bytes */
-
-    size_t read = SeosNwChanmux_chanReadBlocking(pTapdrv->chan_ctrl, response, 2);
-
-    if (read != 2)
+    // 2 byte response
+    char rsp[2];
+    ret = SeosNwChanmux_chanReadBlocking(chn_ctrl, rsp, sizeof(rsp));
+    if (ret != sizeof(rsp))
     {
-        Debug_LOG_ERROR("%s() could not read OPEN CNF response, result=%d",
-                        __FUNCTION__, result);
+        Debug_LOG_ERROR("%s() read response for OPEN failed, result=%zu",
+                        __FUNCTION__, ret);
         return SEOS_ERROR_GENERIC;
     }
-    if (response[0] == NW_CTRL_CMD_OPEN_CNF)
+
+    uint8_t rsp_result = rsp[0];
+    if (rsp_result != NW_CTRL_CMD_OPEN_CNF)
     {
-        // now start reading the mac
-
-        command[0] = NW_CTRL_CMD_GETMAC;
-        command[1] = pTapdrv->chan_data;   // this is required due to proxy
-
-        Debug_LOG_INFO("Sending Get mac cmd:");
-
-        unsigned result = SeosNwChanmux_chanWriteSyncCtrl(
-                              command,
-                              sizeof(command));
-        if (result != sizeof(command))
-        {
-            Debug_LOG_ERROR("%s() result = %d", __FUNCTION__, result);
-            return SEOS_ERROR_GENERIC;
-        }
-        size_t read = SeosNwChanmux_chanReadBlocking(
-                          pTapdrv->chan_ctrl, response,
-                          sizeof(response));
-
-        if (read != sizeof(response))
-        {
-            Debug_LOG_ERROR("%s() read=%d", __FUNCTION__, result);
-            return SEOS_ERROR_GENERIC;
-        }
-        /* response[1] must contain 0 as this is set by proxy when success */
-        if ((NW_CTRL_CMD_GETMAC_CNF == response[0]) && (response[1] == 0))
-        {
-            memcpy(mac, &response[2], MAC_SIZE);
-            Debug_LOG_INFO("%s() mac received:%02x:%02x:%02x:%02x:%02x:%02x", __FUNCTION__,
-                           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
-            const uint8_t empty[MAC_SIZE] = {0};
-            if (memcmp(mac, empty, MAC_SIZE) == 0)
-            {
-                Debug_LOG_ERROR("%s() Empty mac received 00:00:00:00:00:00", __FUNCTION__);
-                return SEOS_ERROR_GENERIC;    // recvd six 0's from proxy tap for mac. This is not good. Check for tap on proxy !!
-            }
-        }
-
+        Debug_LOG_ERROR("%s() cmd OPEN failed, return code %u",
+                        __FUNCTION__, rsp_result);
+        return SEOS_ERROR_GENERIC;
     }
+
+    return SEOS_SUCCESS;
+}
+
+
+//------------------------------------------------------------------------------
+seos_err_t
+SeosNwChanmux_get_mac(
+    unsigned int chn_ctrl,
+    unsigned int chn_data,
+    uint8_t*  mac)
+{
+    size_t ret;
+
+    Debug_LOG_TRACE("%s", __FUNCTION__);
+
+    char cmd[2] = { NW_CTRL_CMD_GETMAC, chn_data };
+    ret = SeosNwChanmux_chanWriteSyncCtrl(cmd, sizeof(cmd));
+    if (ret != sizeof(cmd))
+    {
+        Debug_LOG_ERROR("%s() send command GETMAC failed, result=%zu",
+                        __FUNCTION__, ret);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    // 8 byte response (2 byte status and 6 byte MAC)
+    char rsp[8];
+    ret = SeosNwChanmux_chanReadBlocking(chn_ctrl, rsp, sizeof(rsp));
+    if (ret != sizeof(rsp))
+    {
+        Debug_LOG_ERROR("%s() read response for GETMAC failed, result=%zu",
+                        __FUNCTION__, ret);
+
+        return SEOS_ERROR_GENERIC;
+    }
+
+    uint8_t rsp_result = rsp[0];
+    if (rsp_result != NW_CTRL_CMD_GETMAC_CNF)
+    {
+        Debug_LOG_ERROR("%s() cmd GETMAC response error, return code %u",
+                        __FUNCTION__, rsp_result);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    uint8_t rsp_ctx = rsp[1];
+    if (rsp_ctx != 0)
+    {
+        Debug_LOG_ERROR("%s() cmd GETMAC response ctx error, found %u",
+                        __FUNCTION__, rsp_ctx);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    memcpy(mac, &rsp[2], MAC_SIZE);
+
     return SEOS_SUCCESS;
 }
