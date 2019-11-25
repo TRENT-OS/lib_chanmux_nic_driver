@@ -115,10 +115,10 @@ struct pico_device* pico_chan_mux_tap_create(void)
      */
     mac[MAC_SIZE - 1]++;
 
-    if (0 != pico_device_init((struct pico_device*)chan_mux_tap, drv_name,
-                              mac))
+    int ret = pico_device_init((struct pico_device*)chan_mux_tap, drv_name, mac);
+    if (0 != ret)
     {
-        Debug_LOG_ERROR("%s():Tap device init failed", __FUNCTION__);
+        Debug_LOG_ERROR("%s():Tap device init failed, ret = %d", __FUNCTION__, ret);
         pico_chan_mux_tap_destroy((struct pico_device*)chan_mux_tap);
         return NULL;
     }
