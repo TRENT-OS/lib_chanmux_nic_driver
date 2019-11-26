@@ -5,9 +5,6 @@
  *
  */
 
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
 #include "pico_device.h"
 #include "LibDebug/Debug.h"
 #include "seos_ethernet.h"

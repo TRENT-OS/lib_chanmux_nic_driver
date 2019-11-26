@@ -7,13 +7,13 @@
  */
 
 #include "SeosNwChanmuxIf.h"
-#include <string.h>
 #include "LibDebug/Debug.h"
+#include "seos_ethernet.h"
+#include "seos_chanmux_ethernet.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <limits.h>
-#include "seos_ethernet.h"
-#include "seos_chanmux_ethernet.h"
+#include <string.h>
 
 
 //------------------------------------------------------------------------------
