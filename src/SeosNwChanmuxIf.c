@@ -16,36 +16,6 @@
 #include "seos_chanmux_ethernet.h"
 
 
-//------------------------------------------------------------------------------
-static seos_err_t
-SeosNwChanmux_chanWriteSyncCtrl(
-    const ChanMux_channelCtx_t*  ctrl_channel,
-    const void*                  buf,
-    size_t*                      pLen)
-{
-    size_t len = *pLen;
-    *pLen = 0;
-
-    if (len > PAGE_SIZE)
-    {
-        Debug_LOG_ERROR("len (%zu) bigger than max len (%d)", len, PAGE_SIZE);
-        return SEOS_ERROR_GENERIC;
-    }
-
-    // copy in the ctrl dataport
-    memcpy(ctrl_channel->data_port, buf, len);
-
-    // tell the other side how much data we want to send and in which channel
-    seos_err_t ret = ChanMux_write(ctrl_channel->id, len, pLen);
-    if (ret != SEOS_SUCCESS)
-    {
-        Debug_LOG_ERROR("ChanMux_write() failed, error %d", ret);
-        return SEOS_ERROR_GENERIC;
-    }
-
-    return SEOS_SUCCESS;
-}
-
 
 //------------------------------------------------------------------------------
 size_t
@@ -103,32 +73,94 @@ SeosNwChanmux_chanRead(
 }
 
 
-//------------------------------------------------------------------------------
-static size_t
-SeosNwChanmux_chanReadBlocking (
-    const  ChanMux_channelCtx_t*  channel,
-    void*                         buf,
-    size_t                        len)
-{
-    size_t lenRead = 0;
-    uint8_t* buffer = (uint8_t*)buf;
 
-    while (lenRead < len)
+//------------------------------------------------------------------------------
+// write command into control channel. There is no point in returning the
+// written bytes as full command must be send or there is an error
+static seos_err_t
+chanmux_ctrl_write(
+    const ChanMux_channelCtx_t*  ctrl_channel,
+    const void*                  buf,
+    size_t                      len)
+{
+    if (len > PAGE_SIZE)
     {
-        // Non-blocking read.
-        size_t read = SeosNwChanmux_chanRead(channel,
-                                             &buffer[lenRead],
-                                             len - lenRead);
-        if (0 == read)
+        Debug_LOG_ERROR("len (%zu) bigger than max len (%d)", len, PAGE_SIZE);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    // copy in the ctrl dataport
+    memcpy(ctrl_channel->data_port, buf, len);
+
+    // tell the other side how much data we want to send and in which channel
+    size_t sent_len = 0;
+    seos_err_t ret = ChanMux_write(ctrl_channel->id, len, &sent_len);
+    if (ret != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("ChanMux_write() failed, error %d", ret);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    if (sent_len != len)
+    {
+        Debug_LOG_ERROR("ChanMux_write() sent len invalid: %zu", sent_len);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    return SEOS_SUCCESS;
+}
+
+
+//------------------------------------------------------------------------------
+// read response from control channel. There is no point in returning the read
+// length as full responses must be read or there is an error
+static seos_err_t
+chanmux_ctrl_readBlocking(
+    const ChanMux_channelCtx_t*  ctrl_channel,
+    void*                        buf,
+    size_t                       len)
+{
+    if (len > PAGE_SIZE)
+    {
+        Debug_LOG_ERROR("len (%zu) bigger than max len (%d)", len, PAGE_SIZE);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    unsigned int chan_id = ctrl_channel->id;
+    void* data_port = ctrl_channel->data_port;
+
+    uint8_t* buffer = (uint8_t*)buf;
+    size_t lenRemaining = len;
+
+    // we are a graceful receiver and allow a response in multiple chunks.
+    while (lenRemaining > 0)
+    {
+        size_t chunk_read = 0;
+
+        // this is a non-blocking read, so we are effectively polling here if
+        // the response is not recevied in one chunk. That is bad actually if
+        // we ever really have chunked data - so far this luckily never
+        // happens ...
+        seos_err_t err = ChanMux_read(chan_id, lenRemaining, &chunk_read);
+        if (err != SEOS_SUCCESS)
         {
-            ; // do nothing
+            Debug_LOG_ERROR("ChanMux_read() failed, error %d", err);
+            return SEOS_ERROR_GENERIC;
         }
-        else
+
+        assert(chunk_read <= lenRemaining);
+
+        if (chunk_read > 0)
         {
-            lenRead += read;
+            memcpy(buffer, data_port, chunk_read);
+
+            buffer = &buffer[chunk_read];
+            lenRemaining -= chunk_read;
+
         }
     }
-    return lenRead;
+
+    return SEOS_SUCCESS;
 }
 
 
@@ -142,24 +174,17 @@ SeosNwChanmux_open(
     seos_err_t ret;
 
     uint8_t cmd[2] = { NW_CTRL_CMD_OPEN, chan_id_data };
-    size_t len = sizeof(cmd);
-    ret = SeosNwChanmux_chanWriteSyncCtrl(channel_ctrl, cmd, &len);
+    ret = chanmux_ctrl_write(channel_ctrl, cmd, sizeof(cmd));
     if (ret != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("sending OPEN returned error %d", ret);
         return SEOS_ERROR_GENERIC;
     }
-    if (len != sizeof(cmd))
-    {
-        Debug_LOG_ERROR("sending OPEN failed, ret_len %zu, expected %zu",
-                        len, sizeof(cmd));
-        return SEOS_ERROR_GENERIC;
-    }
 
     // 2 byte response
     uint8_t rsp[2];
-    ret = SeosNwChanmux_chanReadBlocking(channel_ctrl, rsp, sizeof(rsp));
-    if (ret != sizeof(rsp))
+    ret = chanmux_ctrl_readBlocking(channel_ctrl, rsp, sizeof(rsp));
+    if (ret != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("reading response for OPEN returned error %d", ret);
         return SEOS_ERROR_GENERIC;
@@ -187,24 +212,17 @@ SeosNwChanmux_get_mac(
     seos_err_t ret;
 
     uint8_t cmd[2] = { NW_CTRL_CMD_GETMAC, chan_id_data };
-    size_t len = sizeof(cmd);
-    ret = SeosNwChanmux_chanWriteSyncCtrl(channel_ctrl, cmd, &len);
+    ret = chanmux_ctrl_write(channel_ctrl, cmd, sizeof(cmd));
     if (ret != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("sending GETMAC returned error %d", ret);
         return SEOS_ERROR_GENERIC;
     }
-    if (len != sizeof(cmd))
-    {
-        Debug_LOG_ERROR("sending GETMAC failed, ret_len %zu, expected %zu",
-                        len, sizeof(cmd));
-        return SEOS_ERROR_GENERIC;
-    }
 
     // 8 byte response (2 byte status and 6 byte MAC)
     uint8_t rsp[8];
-    ret = SeosNwChanmux_chanReadBlocking(channel_ctrl, rsp, sizeof(rsp));
-    if (ret != sizeof(rsp))
+    ret = chanmux_ctrl_readBlocking(channel_ctrl, rsp, sizeof(rsp));
+    if (ret != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("reading response for GETMAC returned error %d", ret);
         return SEOS_ERROR_GENERIC;
