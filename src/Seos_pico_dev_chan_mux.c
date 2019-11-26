@@ -29,7 +29,7 @@ struct pico_device_chan_mux_tap
 // callback fuction for PicoTCP
 static int
 pico_chan_mux_tap_send(
-    struct pico_device*  dev,
+    struct pico_device*  dev __attribute__((unused)),
     void*                buf,
     int                  len)
 {
