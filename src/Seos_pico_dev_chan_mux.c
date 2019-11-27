@@ -16,14 +16,13 @@
 #include "SeosNwStack.h"
 #include "SeosNwChanmuxIf.h"
 #include "Seos_Driver_Config.h"
+#include <limits.h>
 
 
 struct pico_device_chan_mux_tap
 {
     struct pico_device dev;
 };
-
-#define TUN_MTU     4096 /* This value is chosen due to PAGE_SIZE of platform */
 
 extern Seos_nw_camkes_info* pnw_camkes;
 
@@ -36,14 +35,33 @@ pico_chan_mux_tap_send(
     int                  len)
 {
     seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
+    unsigned int chan = pTapdrv->chan_data;
+    void* data_port = pnw_camkes->pportsglu->ChanMuxDataPort;
 
-    const ChanMux_channelCtx_t channel_data =
+    uint8_t* buffer = (uint8_t*)buf;
+    size_t remain_len = len;
+
+    while (remain_len > 0)   // loop to send all data if > PAGE_SIZE = 4096
     {
-        .data_port  = pnw_camkes->pportsglu->ChanMuxDataPort,
-        .id         = pTapdrv->chan_data
-    };
+        size_t len_chunk = (len < PAGE_SIZE) ? len : PAGE_SIZE;
+        // copy in the normal dataport
+        memcpy(data_port, buffer, len_chunk);
+        // tell the other side how much data is in the channel
+        size_t len_written = 0;
+        seos_err_t err = ChanMux_write(chan, len_chunk, &len_written);
+        if (err != SEOS_SUCCESS)
+        {
+            Debug_LOG_ERROR("ChanMux_write() failed, error %d", err);
+            return -1;
+        }
 
-    return SeosNwChanmux_chanWriteSyncData(&channel_data, buf, len);
+        assert(len_written <= len_chunk);
+
+        buffer = &buffer[len_written];
+        remain_len -= len_written;
+    }
+
+    return len;
 }
 
 
@@ -55,31 +73,30 @@ pico_chan_mux_tap_poll(
     int                  loop_score)
 {
     seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
-
-    const ChanMux_channelCtx_t channel_data =
-    {
-        .data_port  = pnw_camkes->pportsglu->ChanMuxDataPort,
-        .id         = pTapdrv->chan_data
-    };
-
-
-    unsigned char buf[TUN_MTU];
+    unsigned int chan = pTapdrv->chan_data;
+    void* data_port = pnw_camkes->pportsglu->ChanMuxDataPort;
 
     // loop_score indicates max number of frames that PicoTCP can read in this
-    // call.
-    while (loop_score > 0)
+    // call. Since we don't preserve the frames, we can't really do anything
+    // here besides passin all data from the buffer to PicoTCP.
+    if (loop_score > 0)
     {
-        int len = SeosNwChanmux_chanRead(&channel_data, buf, sizeof(buf));
-        if (len <= 0)
+        size_t len_read = 0;
+        seos_err_t err = ChanMux_read(chan, PAGE_SIZE, &len_read);
+        if (err != SEOS_SUCCESS)
         {
+            Debug_LOG_ERROR("ChanMux_read() failed, error %d", err);
             return loop_score;
         }
 
-        loop_score--;
-        pico_stack_recv(dev, buf, (uint32_t)len);
+        if (len_read > 0)
+        {
+            loop_score--;
+            // send frame to PicoTCP
+            pico_stack_recv(dev, data_port, (uint32_t)len_read);
+        }
     }
-
-    return 0;
+    return loop_score;
 }
 
 

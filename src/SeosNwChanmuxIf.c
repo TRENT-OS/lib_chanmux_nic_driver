@@ -16,64 +16,6 @@
 #include "seos_chanmux_ethernet.h"
 
 
-
-//------------------------------------------------------------------------------
-size_t
-SeosNwChanmux_chanWriteSyncData(
-    const ChanMux_channelCtx_t*  channel,
-    const void*                  buf,
-    size_t                       len)
-{
-    size_t written = 0;
-    size_t remain_len = len;
-    size_t w_size = 0;
-    void* datawrbuf = channel->data_port;
-
-    while (len > 0)   // loop to send all data if > PAGE_SIZE = 4096
-    {
-        len = (len < PAGE_SIZE) ? len : PAGE_SIZE;
-        // copy in the normal dataport
-        memcpy(datawrbuf, buf + w_size, len);
-        // tell the other side how much data we want to send and in which channel
-        seos_err_t err = ChanMux_write(channel->id, len, &written);
-        if (err != SEOS_SUCCESS)
-        {
-            Debug_LOG_ERROR("ChanMux_write() failed, error %d", err);
-            break;
-        }
-        w_size = +written;
-        len = remain_len - w_size;
-    }
-
-    return w_size;
-}
-
-
-//------------------------------------------------------------------------------
-size_t
-SeosNwChanmux_chanRead(
-    const  ChanMux_channelCtx_t*  channel,
-    void*                         buf,
-    size_t                        len)
-{
-    size_t read = 0;
-    seos_err_t err = ChanMux_read(channel->id, len, &read);
-    if (err != SEOS_SUCCESS)
-    {
-        Debug_LOG_ERROR("ChanMux_read() failed, error %d", err);
-        return read;
-    }
-
-    if (read > 0)
-    {
-        memcpy(buf, channel->data_port, read);
-    }
-
-    return read;
-}
-
-
-
 //------------------------------------------------------------------------------
 // write command into control channel. There is no point in returning the
 // written bytes as full command must be send or there is an error

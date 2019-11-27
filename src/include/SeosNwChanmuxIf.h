@@ -63,44 +63,6 @@ seos_err_t ChanMux_read(
 
 
 /**
- * @details %SeosNwChanmux_chanWriteSyncData, Write wrapper for ChanMux_write Data channel
- * @ingroup SeosNwChanmuxIf
- *
- * @param chan: channel
- * @param *buf: Pointer of the data buffer containing data to be written
-
- * @param len: Length of data to write
- *
- * @return Total number of bytes written
- * @retval length
- *
- */
-size_t
-SeosNwChanmux_chanWriteSyncData(
-    const ChanMux_channelCtx_t*  channel,
-    const void*                  buf,
-    size_t                       len);
-
-
-/**
- * @details %SeosNwChanmux_chanRead, Read wrapper for ChanMux_Read non Blocking
- * @ingroup SeosNwChanmuxIf
- *
- * @param channel: channel context
- * @param buf: Buffer to read data into
- *
- * @return Total number of bytes read
- * @retval length of bytes read
- *
- */
-size_t
-SeosNwChanmux_chanRead(
-    const ChanMux_channelCtx_t*  channel,
-    void*                        buf,
-    size_t                       len);
-
-
-/**
  * @details open ethernet device simulated via ChanMUX
  * @ingroup SeosNwChanmuxIf
  *
