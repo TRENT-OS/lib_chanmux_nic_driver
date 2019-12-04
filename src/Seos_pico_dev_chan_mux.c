@@ -33,7 +33,7 @@ pico_chan_mux_tap_send(
 {
     seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
     unsigned int chan = pTapdrv->chan_data;
-    void* data_port = pnw_camkes->pportsglu->ChanMuxDataPort;
+    void* data_port = pnw_camkes->pportsglu->ChanMuxDataPortWrite;
 
     uint8_t* buffer = (uint8_t*)buf;
     size_t remain_len = len;
@@ -71,7 +71,7 @@ pico_chan_mux_tap_poll(
 {
     seos_driver_config* pTapdrv = Seos_NwDriver_getconfig();
     unsigned int chan = pTapdrv->chan_data;
-    void* data_port = pnw_camkes->pportsglu->ChanMuxDataPort;
+    uint8_t* data_port = (uint8_t*) pnw_camkes->pportsglu->ChanMuxDataPortRead;
 
     // loop_score indicates max number of frames that PicoTCP can read in this
     // call. Since we don't preserve the frames, we can't really do anything
