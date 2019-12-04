@@ -1,29 +1,30 @@
 /*
- *  SeosNwChanmuxIf.h
- *
  *  Copyright (C) 2019, Hensoldt Cyber GmbH
-*/
-
-
-/**
- * @defgroup SeosNwChanmuxIf SEOS Chanmux Interface
- * @file     SeosNwChanmuxIf.h
- * @brief    This file contains interfaces or API to interact with Chanmux \n
-             This is mostly to send and receive data to/from proxy finally over TAP
  *
  */
 
 #pragma once
 
+#include "SeosError.h"
+#include "seos_chanmux.h"
 #include <stddef.h>
 #include <stdint.h>
-#include "SeosError.h"
 
-typedef struct
-{
-    void*          data_port;
-    unsigned int   id;
-} ChanMux_channelCtx_t;
+//------------------------------------------------------------------------------
+// Configuration Wrappers
+//------------------------------------------------------------------------------
+const ChanMux_channelCtx_t* get_chanmux_channel_ctrl(void);
+const ChanMux_channelDuplexCtx_t* get_chanmux_channel_data(void);
+void chanmux_wait(void);
+const seos_shared_buffer_t* get_network_stack_port_to(void);
+const seos_shared_buffer_t* get_network_stack_port_from(void);
+void network_stack_notify(void);
+
+//------------------------------------------------------------------------------
+// internal functions
+//------------------------------------------------------------------------------
+seos_err_t chanmux_nic_driver_init(void);
+seos_err_t chanmux_nic_driver_loop(void);
 
 
 /**

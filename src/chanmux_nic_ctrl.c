@@ -6,13 +6,14 @@
  *
  */
 
-#include "SeosNwChanmuxIf.h"
+
 #include "LibDebug/Debug.h"
 #include "seos_ethernet.h"
-#include "seos_chanmux_ethernet.h"
+#include "seos_chanmux_nic.h"
+#include "chanmux_nic_drv.h"
+#include "seos_api_chanmux_nic_drv.h"
 #include <stdint.h>
 #include <stddef.h>
-#include <limits.h>
 #include <string.h>
 
 
@@ -23,16 +24,17 @@ static seos_err_t
 chanmux_ctrl_write(
     const ChanMux_channelCtx_t*  ctrl_channel,
     const void*                  buf,
-    size_t                      len)
+    size_t                       len)
 {
-    if (len > PAGE_SIZE)
+    if (len > ctrl_channel->port.len)
     {
-        Debug_LOG_ERROR("len (%zu) bigger than max len (%d)", len, PAGE_SIZE);
+        Debug_LOG_ERROR("len (%zu) exceeds buffer size (%d)", len,
+                        ctrl_channel->port.len);
         return SEOS_ERROR_GENERIC;
     }
 
     // copy in the ctrl dataport
-    memcpy(ctrl_channel->data_port, buf, len);
+    memcpy(ctrl_channel->port.buffer, buf, len);
 
     // tell the other side how much data we want to send and in which channel
     size_t sent_len = 0;
@@ -62,14 +64,12 @@ chanmux_ctrl_readBlocking(
     void*                        buf,
     size_t                       len)
 {
-    if (len > PAGE_SIZE)
+    if (len > ctrl_channel->port.len)
     {
-        Debug_LOG_ERROR("len (%zu) bigger than max len (%d)", len, PAGE_SIZE);
+        Debug_LOG_ERROR("len (%zu) exceeds buffer size (%d)", len,
+                        ctrl_channel->port.len);
         return SEOS_ERROR_GENERIC;
     }
-
-    unsigned int chan_id = ctrl_channel->id;
-    void* data_port = ctrl_channel->data_port;
 
     uint8_t* buffer = (uint8_t*)buf;
     size_t lenRemaining = len;
@@ -83,7 +83,7 @@ chanmux_ctrl_readBlocking(
         // the response is not recevied in one chunk. That is bad actually if
         // we ever really have chunked data - so far this luckily never
         // happens ...
-        seos_err_t err = ChanMux_read(chan_id, lenRemaining, &chunk_read);
+        seos_err_t err = ChanMux_read(ctrl_channel->id, lenRemaining, &chunk_read);
         if (err != SEOS_SUCCESS)
         {
             Debug_LOG_ERROR("ChanMux_read() failed, error %d", err);
@@ -94,11 +94,10 @@ chanmux_ctrl_readBlocking(
 
         if (chunk_read > 0)
         {
-            memcpy(buffer, data_port, chunk_read);
+            memcpy(buffer, ctrl_channel->port.buffer, chunk_read);
 
             buffer = &buffer[chunk_read];
             lenRemaining -= chunk_read;
-
         }
     }
 
@@ -112,10 +111,9 @@ SeosNwChanmux_open(
     const  ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                  chan_id_data)
 {
-    Debug_LOG_TRACE("%s", __FUNCTION__);
     seos_err_t ret;
 
-    uint8_t cmd[2] = { NW_CTRL_CMD_OPEN, chan_id_data };
+    uint8_t cmd[2] = { CHANMUX_NIC_CMD_OPEN, chan_id_data };
     ret = chanmux_ctrl_write(channel_ctrl, cmd, sizeof(cmd));
     if (ret != SEOS_SUCCESS)
     {
@@ -133,7 +131,7 @@ SeosNwChanmux_open(
     }
 
     uint8_t rsp_result = rsp[0];
-    if (rsp_result != NW_CTRL_CMD_OPEN_CNF)
+    if (rsp_result != CHANMUX_NIC_RSP_OPEN)
     {
         Debug_LOG_ERROR("command OPEN failed, status code %u", rsp_result);
         return SEOS_ERROR_GENERIC;
@@ -150,10 +148,9 @@ SeosNwChanmux_get_mac(
     unsigned int                 chan_id_data,
     uint8_t*                     mac)
 {
-    Debug_LOG_TRACE("%s", __FUNCTION__);
     seos_err_t ret;
 
-    uint8_t cmd[2] = { NW_CTRL_CMD_GETMAC, chan_id_data };
+    uint8_t cmd[2] = { CHANMUX_NIC_CMD_GET_MAC, chan_id_data };
     ret = chanmux_ctrl_write(channel_ctrl, cmd, sizeof(cmd));
     if (ret != SEOS_SUCCESS)
     {
@@ -171,7 +168,7 @@ SeosNwChanmux_get_mac(
     }
 
     uint8_t rsp_result = rsp[0];
-    if (rsp_result != NW_CTRL_CMD_GETMAC_CNF)
+    if (rsp_result != CHANMUX_NIC_RSP_GET_MAC)
     {
         Debug_LOG_ERROR("command GETMAC failed, status code %u", rsp_result);
         return SEOS_ERROR_GENERIC;
