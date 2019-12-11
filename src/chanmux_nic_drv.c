@@ -77,22 +77,25 @@ chanmux_nic_driver_loop(void)
         RECEIVE_PROCESSING
     } state = RECEIVE_FRAME_START;
 
-    size_t size_len;
-    size_t frame_len;
-    size_t frame_offset;
-    size_t yield_counter;
-    int doDropFrame;
+    size_t size_len = 0;
+    size_t frame_len = 0;
+    size_t frame_offset = 0;
+    size_t yield_counter = 0;
+    int doRead = true;
+    int doDropFrame = false;
 
     for (;;)
     {
-        while ((0 == buffer_len) || (RECEIVE_ERROR == state))
+        Debug_ASSERT( (!doRead) || (0 == buffer_len) );
+        while (doRead || (RECEIVE_ERROR == state))
         {
+            Debug_ASSERT( 0 == buffer_len );
+            Debug_LOG_DEBUG("chanmux_wait, state %d", state);
             chanmux_wait();
 
             // read as much data as possible from the ChanMUX channel FIFO into
             // the shared memory data port. We do this even in the state
             // RECEIVE_ERROR, because we have to drain the FIFOs.
-            buffer_len = 0;
             seos_err_t err = ChanMux_read(data->id,
                                           sizeof(buffer),
                                           &buffer_len);
@@ -109,19 +112,23 @@ chanmux_nic_driver_loop(void)
             {
                 Debug_LOG_ERROR("state RECEIVE_ERROR, drop %zu bytes", buffer_len);
                 buffer_len = 0; // causes wait for the next ChanMUX signal
+                continue;
             }
 
-            if (buffer_len > 0)
+            if (0 == buffer_len)
             {
-                memcpy(buffer, data->port_read.buffer, buffer_len);
-                buffer_offset = 0;
+                Debug_LOG_DEBUG("no data from ChanMUX");
+                continue;
             }
-        } // end while (0 == buffer_len)
 
-        // when we arrive here, there is data in the buffer and we are not in
-        // the error state. Dispatch depending on state
+            memcpy(buffer, data->port_read.buffer, buffer_len);
+            buffer_offset = 0;
+            doRead = false;
+        } // end while
 
-        Debug_ASSERT( buffer_len > 0 );
+        // when we arrive here, there might be data in the buffer to read or
+        // the state achine just needs to make progress.
+
         Debug_ASSERT( RECEIVE_ERROR != state );
         switch (state)
         {
@@ -129,38 +136,50 @@ chanmux_nic_driver_loop(void)
         case RECEIVE_FRAME_START:
             size_len = 2;
             frame_len = 0;
+            frame_offset = 0;
+            doDropFrame = false;
+            Debug_ASSERT( !doRead );
             state = RECEIVE_FRAME_LEN;
-            break;
+            break; // could also fall through
 
         //----------------------------------------------------------------------
         case RECEIVE_FRAME_LEN:
-        {
-            // read a byte
-            Debug_ASSERT( buffer_len >= 1 );
-            Debug_ASSERT( buffer_offset + buffer_len <= sizeof(buffer) );
-            uint8_t len_byte = buffer[buffer_offset];
-            buffer_offset++;
-            buffer_len--;
 
-            // frame length is send in network byte order (big endian), so we
-            // build the value as: 0x0000 -> 0x00AA -> 0xAABB
-            frame_len <<= 8;
-            frame_len |= len_byte;
-
-            // check if there are more length bytes to read
             Debug_ASSERT( 0 != size_len );
-            if (0 != --size_len)
+            if (0 == buffer_len)
             {
+                doRead = true;
                 break;
             }
 
-            // we have read the length, make some sanity check and then change
-            // state to read the frame data
+            do
+            {
+                Debug_ASSERT( buffer_offset + buffer_len <= sizeof(buffer) );
+
+                uint8_t len_byte = buffer[buffer_offset++];
+                buffer_len--;
+                size_len--;
+
+                // frame length is send in network byte order (big endian), so we
+                // build the value as: 0x0000 -> 0x00AA -> 0xAABB
+                frame_len <<= 8;
+                frame_len |= len_byte;
+
+            }
+            while ((buffer_len > 0) && (size_len > 0));
+
+            if (size_len > 0)
+            {
+                Debug_ASSERT( 0 == buffer_len );
+                doRead = true;
+                break;
+            }
+
+            // we have read the length, make some sanity check and then
+            // change state to read the frame data
             Debug_LOG_DEBUG("expecting ethernet frame of %zu bytes", frame_len);
+            Debug_ASSERT( 0 == frame_offset );
             Debug_ASSERT( frame_len <= ETHERNET_FRAME_MAX_SIZE );
-
-            frame_offset = 0;
-
             // if the frame is too big for our buffer, then the only option is
             // dropping it
             doDropFrame = (frame_len > nw_in.len);
@@ -170,49 +189,56 @@ chanmux_nic_driver_loop(void)
                                   frame_len, nw_in.len);
             }
 
-            // read the data
+            // read the frame data
+            Debug_ASSERT( !doRead );
             state = RECEIVE_FRAME_DATA;
-            break;
-        }
-        break;
+            break; // could also fall through
 
         //----------------------------------------------------------------------
         case RECEIVE_FRAME_DATA:
-        {
-            size_t chunk_len = frame_len - frame_offset;
-            if (chunk_len > buffer_len)
+            if (0 == buffer_len)
             {
-                chunk_len = buffer_len;
+                doRead = true;
+                break;
             }
 
-            if (!doDropFrame)
             {
-                // we can't handle frame bigger than our buffer and the only
-                // option in this case is dropping the frame
-                Debug_ASSERT(chunk_len < nw_in.len);
-                Debug_ASSERT( frame_offset + chunk_len < nw_in.len );
+                size_t chunk_len = frame_len - frame_offset;
+                if (chunk_len > buffer_len)
+                {
+                    chunk_len = buffer_len;
+                }
 
-                // ToDo: we could try to avoid this copy operation and just
-                //       have one shared memory for the ChanMUX channel and the
-                //       network stack input. But that requires more
-                //       synchronization then and we have to deal with cases
-                //       where a frame wraps around in the buffer.
-                uint8_t* nw_in_buf = (uint8_t*)nw_in.buffer;
-                memcpy(&nw_in_buf[frame_offset],
-                       &buffer[buffer_offset],
-                       chunk_len);
+                if (!doDropFrame)
+                {
+                    // we can't handle frame bigger than our buffer and the only
+                    // option in this case is dropping the frame
+                    Debug_ASSERT(chunk_len < nw_in.len);
+                    Debug_ASSERT( frame_offset + chunk_len < nw_in.len );
+
+                    // ToDo: we could try to avoid this copy operation and just
+                    //       have one shared memory for the ChanMUX channel and the
+                    //       network stack input. But that requires more
+                    //       synchronization then and we have to deal with cases
+                    //       where a frame wraps around in the buffer.
+                    uint8_t* nw_in_buf = (uint8_t*)nw_in.buffer;
+                    memcpy(&nw_in_buf[frame_offset],
+                           &buffer[buffer_offset],
+                           chunk_len);
+                }
+
+                Debug_ASSERT( buffer_len >= chunk_len );
+                buffer_len -= chunk_len;
+                buffer_offset += chunk_len;
+                frame_offset += chunk_len;
             }
-
-            Debug_ASSERT( buffer_len >= chunk_len );
-            buffer_len -= chunk_len;
-            buffer_offset += chunk_len;
-            frame_offset += chunk_len;
 
             // check if we have received the full frame. If not then wait for
             // more data
             if (frame_offset < frame_len)
             {
                 Debug_ASSERT( 0 == buffer_len );
+                doRead = true;
                 break;
             }
 
@@ -220,6 +246,7 @@ chanmux_nic_driver_loop(void)
             // try to read the next frame
             if (doDropFrame)
             {
+                Debug_ASSERT( !doRead );
                 state = RECEIVE_FRAME_START;
                 break;
             }
@@ -228,10 +255,11 @@ chanmux_nic_driver_loop(void)
             // Debug_LOG_DEBUG("got ethernet frame of %zu bytes", frame_len);
             nw_rx->len = frame_len;
             network_stack_notify();
-            state = RECEIVE_PROCESSING;
+
             yield_counter = 0;
-        }
-        break;
+            Debug_ASSERT( !doRead );
+            state = RECEIVE_PROCESSING;
+            break; // could also fall through
 
         //----------------------------------------------------------------------
         case RECEIVE_PROCESSING:
@@ -242,25 +270,35 @@ chanmux_nic_driver_loop(void)
             // we end up in a deadlock.
             if (0 != (volatile size_t)nw_rx->len)
             {
-                // we are in a busy loop here. Since there is no signal we can
-                // block on, yielding is the best option so far.
-                seL4_Yield();
-                yield_counter++;
+                // we can try to read new data (and drain the ChanMUX FIFO)
+                // while instead of just waiting.
+                doRead = (0 == buffer_len);
+                if (!doRead)
+                {
+                    // we have more pending data already, but the frame has not
+                    // been processed, so all we can do now is wait. Loop
+                    // over a yield is the best we can do, since there is no
+                    // signal we can block on
+                    yield_counter++;
+                    seL4_Yield();
+                }
                 break;
             }
 
+            // if we arrive here, the network stack has processed the frame, so
+            // we can receive and process the next frame
             if (yield_counter > 0)
             {
-                Debug_LOG_DEBUG("yield_counter is %zu", yield_counter);
+                Debug_LOG_WARNING("yield_counter is %zu", yield_counter);
             }
 
+            Debug_ASSERT( !doRead );
             state = RECEIVE_FRAME_START;
             break;
 
         //----------------------------------------------------------------------
         default:
             Debug_LOG_ERROR("invalid state %d, drop %zu bytes", state, buffer_len);
-            buffer_len = 0; // causes wait for the next ChanMUX signal
             state = RECEIVE_ERROR;
             Debug_ASSERT(false); // we should never be here
             break;
