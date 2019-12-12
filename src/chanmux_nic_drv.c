@@ -86,11 +86,28 @@ chanmux_nic_driver_loop(void)
 
     for (;;)
     {
-        Debug_ASSERT( (!doRead) || (0 == buffer_len) );
+        // we only block on reading new that if there is an explicit request to
+        // to this. We can't do it every time the buffer is empty, becuase this
+        // would block some state machine transitions.
+        // ToDo: Current implementation will also block on the ChanMUX data
+        //       notification, because that is the best option we have at the
+        //       moment to do nothing and don't waste CPU time. We could
+        //       improve things by adding error recovery options, e.g.  allow
+        //       a reset of the NIC driver.
         while (doRead || (RECEIVE_ERROR == state))
         {
-            Debug_ASSERT( 0 == buffer_len );
-            Debug_LOG_DEBUG("chanmux_wait, state %d", state);
+            // if there was a read request, then the buffer must be empty.
+            Debug_ASSERT( (!doRead) || (0 == buffer_len) );
+
+            // in error state we simply drop all remaining data
+            if (RECEIVE_ERROR == state)
+            {
+                Debug_LOG_ERROR("state RECEIVE_ERROR, drop %zu bytes", buffer_len);
+                buffer_len = 0;
+            }
+
+            // ToDo: actually, we want a single atomic blocking read RPC call
+            //       here and not the two calls of wait() and read().
             chanmux_wait();
 
             // read as much data as possible from the ChanMUX channel FIFO into
@@ -107,29 +124,27 @@ chanmux_nic_driver_loop(void)
                 state = RECEIVE_ERROR;
             }
 
-            // in error state we simply drop all data
-            if (RECEIVE_ERROR == state)
+            // it can happen that we wanted to read new data, blocked on the
+            // ChanMUX event and eventually got it. But unfortunately, there is
+            // no new data for some reason. One day we should analyze this in
+            // more detail and don't just consider this a spurious event that
+            // happens every now and then. Until then, we just keep looping
+            // and block until the next ChanMUX event comes, because we are
+            // here exactly because the state machine has run out of data.
+            if ((RECEIVE_ERROR != state) && (0 != buffer_len))
             {
-                Debug_LOG_ERROR("state RECEIVE_ERROR, drop %zu bytes", buffer_len);
-                buffer_len = 0; // causes wait for the next ChanMUX signal
-                continue;
+                memcpy(buffer, data->port_read.buffer, buffer_len);
+                buffer_offset = 0;
+                doRead = false; // ensure we leave the loop
             }
 
-            if (0 == buffer_len)
-            {
-                Debug_LOG_DEBUG("no data from ChanMUX");
-                continue;
-            }
-
-            memcpy(buffer, data->port_read.buffer, buffer_len);
-            buffer_offset = 0;
-            doRead = false;
         } // end while
 
         // when we arrive here, there might be data in the buffer to read or
-        // the state achine just needs to make progress.
-
+        // the state achine just needs to make progress. But we can't be in
+        // the error state, as the loop above is supposed to handle this state.
         Debug_ASSERT( RECEIVE_ERROR != state );
+
         switch (state)
         {
         //----------------------------------------------------------------------
@@ -177,7 +192,7 @@ chanmux_nic_driver_loop(void)
 
             // we have read the length, make some sanity check and then
             // change state to read the frame data
-            Debug_LOG_DEBUG("expecting ethernet frame of %zu bytes", frame_len);
+            Debug_LOG_TRACE("expecting ethernet frame of %zu bytes", frame_len);
             Debug_ASSERT( 0 == frame_offset );
             Debug_ASSERT( frame_len <= ETHERNET_FRAME_MAX_SIZE );
             // if the frame is too big for our buffer, then the only option is
@@ -263,33 +278,65 @@ chanmux_nic_driver_loop(void)
 
         //----------------------------------------------------------------------
         case RECEIVE_PROCESSING:
-            // The only option here is polling for "nw_in->len = 0". We can't
-            // wait for a ChanMAX input notification because that comes just
-            // for a new frame. At some point there could be no more frames
-            // coming and we would be stuck.
-            // we end up in a deadlock.
+            // check if the network stack has processed the frame.
             if (0 != (volatile size_t)nw_rx->len)
             {
-                // we can try to read new data (and drain the ChanMUX FIFO)
-                // while instead of just waiting.
+                // frame processing is still ongoing. Instead of going straight
+                // into blocking here, we can do an optimization here in case
+                // the buffer is empt - check if there is new data in the
+                // ChanMUX FIFO and fetch it into our buffer. Then the FIFO
+                // becomes available again for more data. Note that this makes
+                // sense in the current approach where we have a local buffer
+                // here. Once we optimize out this local buffer, we might also
+                // block here directly, because there is noting else we can do.
+                // Note also, that we can't do a blocking wait on the ChanMUX
+                // is there is still data in the buffer, because we have to
+                // give this data as potential frame to the network stack once
+                // is has processed the current frame.
                 doRead = (0 == buffer_len);
-                if (!doRead)
+                if (doRead)
                 {
-                    // we have more pending data already, but the frame has not
-                    // been processed, so all we can do now is wait. Loop
-                    // over a yield is the best we can do, since there is no
-                    // signal we can block on
-                    yield_counter++;
-                    seL4_Yield();
+                    break;
                 }
-                break;
+
+                // ToDo: here we should block on a signal that the network
+                //       stack sets when it has processed the frame. Until we
+                //       have this, yielding is the best thing we can do.
+                yield_counter++;
+                seL4_Yield();
+
+                // As long as we yield, there is not too much again in checking
+                // nw_rx->len here again, as we basically run a big loop. But
+                // once we block waiting on a signal, checking here makes much
+                // sense, because we expect to find the length cleared. Note
+                // that we can't blindly assume this, because there might be
+                // corner cases where we could see spurious signals.
+                if (0 != (volatile size_t)nw_rx->len)
+                {
+                    break;
+                }
             }
 
             // if we arrive here, the network stack has processed the frame, so
-            // we can receive and process the next frame
+            // we can give it the next frame.
+
+            // As long as we use yield instad of blocking on a singal, let's
+            // have some statistics about how bad the yielding really is.
+            // Ideally, we see no yields at all. But that happens very rarely
+            // (especially in debug builds). One yield seem the standard case,
+            // so we don't report this unless we are loggin at trace level.
+            // The more yields we see happning, the higher the priority gets
+            // that we more to signals and stop wasint CPU time.
             if (yield_counter > 0)
             {
-                Debug_LOG_WARNING("yield_counter is %zu", yield_counter);
+                if (1 == yield_counter)
+                {
+                    Debug_LOG_TRACE("yield_counter is %zu", yield_counter);
+                }
+                else
+                {
+                    Debug_LOG_WARNING("yield_counter is %zu", yield_counter);
+                }
             }
 
             Debug_ASSERT( !doRead );
@@ -297,10 +344,15 @@ chanmux_nic_driver_loop(void)
             break;
 
         //----------------------------------------------------------------------
+        // case RECEIVE_ERROR
         default:
+            // This is basically a safe-guard. Practically, we should never
+            // arrive here, since we have case-statements for all important
+            // enum values. There is none for RECEIVE_ERROR, because we hande
+            // this state somewhere else.
             Debug_LOG_ERROR("invalid state %d, drop %zu bytes", state, buffer_len);
-            state = RECEIVE_ERROR;
-            Debug_ASSERT(false); // we should never be here
+            Debug_ASSERT( RECEIVE_ERROR == state );
+
             break;
         } // end switch (state)
     }
@@ -315,11 +367,13 @@ seos_err_t seos_chanmux_nic_driver_rpc_tx_data(
     size_t len = *pLen;
     *pLen = 0;
 
+    Debug_LOG_TRACE("sending frame of %zu bytes ", len);
+
     const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
 
     const seos_shared_buffer_t* nw_output = get_network_stack_port_from();
     uint8_t* buffer_nw_out = (uint8_t*)nw_output->buffer;
-
+    size_t offset_nw_out = 0;
     size_t remain_len = len;
 
     while (remain_len > 0)
@@ -328,10 +382,14 @@ seos_err_t seos_chanmux_nic_driver_rpc_tx_data(
         if (len_chunk > data->port_read.len)
         {
             len_chunk = data->port_read.len;
+            Debug_LOG_WARNING("can only send %zu of %zu bytes",
+                              len_chunk, remain_len);
         }
 
         // copy data from network stack to ChanMUX buffer
-        memcpy(data->port_write.buffer, buffer_nw_out, len_chunk);
+        memcpy(data->port_write.buffer,
+               &buffer_nw_out[offset_nw_out],
+               len_chunk);
 
         // tell ChanMUX how much data is there
         size_t len_written = 0;
@@ -342,12 +400,16 @@ seos_err_t seos_chanmux_nic_driver_rpc_tx_data(
             return SEOS_ERROR_GENERIC;
         }
 
-        Debug_ASSERT(len_written <= len_chunk);
+        if (len_chunk != len_written)
+        {
+            Debug_LOG_WARNING("ChanMux_write() wrote only %zu of %zu bytes",
+                              len_written, len_chunk);
+            Debug_ASSERT(len_written <= len_chunk);
+        }
 
-        Debug_ASSERT(remain_len <= len_chunk);
+        Debug_ASSERT(remain_len <= len_written);
         remain_len -= len_written;
-
-        buffer_nw_out = &buffer_nw_out[len_written];
+        offset_nw_out += len_written;
     }
 
     *pLen = len;
