@@ -96,14 +96,17 @@ chanmux_nic_driver_loop(void)
         //       a reset of the NIC driver.
         while (doRead || (RECEIVE_ERROR == state))
         {
-            // if there was a read request, then the buffer must be empty.
-            Debug_ASSERT( (!doRead) || (0 == buffer_len) );
 
             // in error state we simply drop all remaining data
             if (RECEIVE_ERROR == state)
             {
                 Debug_LOG_ERROR("state RECEIVE_ERROR, drop %zu bytes", buffer_len);
                 buffer_len = 0;
+            }
+            else if (doRead)
+            {
+                // if there was a read request, then the buffer must be empty.
+                Debug_ASSERT( 0 == buffer_len );
             }
 
             // ToDo: actually, we want a single atomic blocking read RPC call
@@ -120,7 +123,7 @@ chanmux_nic_driver_loop(void)
             {
                 Debug_LOG_ERROR("ChanMux_read() %s, error %d, state=%d",
                                 (SEOS_ERROR_OVERFLOW_DETECTED == err) ? "reported OVERFLOW" : "failed",
-                                err, err);
+                                err, state);
                 state = RECEIVE_ERROR;
             }
 
