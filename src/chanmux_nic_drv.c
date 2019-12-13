@@ -86,7 +86,7 @@ chanmux_nic_driver_loop(void)
 
     for (;;)
     {
-        // we only block on reading new that if there is an explicit request to
+        // we only block on reading new data if there is an explicit request to
         // to this. We can't do it every time the buffer is empty, becuase this
         // would block some state machine transitions.
         // ToDo: Current implementation will also block on the ChanMUX data
