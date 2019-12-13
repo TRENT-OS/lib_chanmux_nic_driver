@@ -366,7 +366,7 @@ chanmux_nic_driver_loop(void)
 
 
 //------------------------------------------------------------------------------
-// called by network stack to send data
+// called by network stack to send an ethernet frame
 seos_err_t seos_chanmux_nic_driver_rpc_tx_data(
     size_t* pLen)
 {
@@ -375,47 +375,79 @@ seos_err_t seos_chanmux_nic_driver_rpc_tx_data(
 
     Debug_LOG_TRACE("sending frame of %zu bytes ", len);
 
+    // Ethernet frames used to be max 1518 bytes. Then 802.1Q added a 4 byte
+    // Q-tag, so they can be 1522 bytes, which is a common default. However,
+    // there is also 802.1ad "Q-in-Q", where multiple Q-tags can be present.
+    // Thus we do not make any assumption here about the max size here and send
+    // whatever the network stack give us. With our 2-byte length prefix, the
+    // length can be up to 0xFFFF, so even jumbo frame with an MTU of 9000 byte
+    // would work.
+    if (len > 0xFFFF)
+    {
+        Debug_LOG_WARNING("can't send frame, len %zu exceeds max supported length %d",
+                          len, 0xFFFF);
+        return SEOS_ERROR_GENERIC;
+    }
+
     const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
+    uint8_t* port_buffer = data->port_write.buffer;
+    size_t port_len = data->port_write.len;
+    size_t port_offset = 0;
 
     const seos_shared_buffer_t* nw_output = get_network_stack_port_from();
     uint8_t* buffer_nw_out = (uint8_t*)nw_output->buffer;
     size_t offset_nw_out = 0;
-    size_t remain_len = len;
 
+    // send frame length as uint16 in big endian
+    Debug_ASSERT(port_len >= 2);
+    port_buffer[port_offset++] = (len >> 8) & 0xFF;
+    port_buffer[port_offset++] = len & 0xFF;
+    port_len -= 2;
+
+    size_t remain_len = len;
     while (remain_len > 0)
     {
         size_t len_chunk = remain_len;
-        if (len_chunk > data->port_read.len)
+        if (len_chunk > port_len)
         {
-            len_chunk = data->port_read.len;
+            len_chunk = port_len;
             Debug_LOG_WARNING("can only send %zu of %zu bytes",
                               len_chunk, remain_len);
         }
 
         // copy data from network stack to ChanMUX buffer
-        memcpy(data->port_write.buffer,
+        memcpy(&port_buffer[port_offset],
                &buffer_nw_out[offset_nw_out],
                len_chunk);
 
-        // tell ChanMUX how much data is there
+        // tell ChanMUX how much data is there. We have to take into account
+        // the frame length prefix.
+        size_t len_to_write = port_offset + len_chunk;
         size_t len_written = 0;
-        seos_err_t err = ChanMux_write(data->id, len_chunk, &len_written);
+        seos_err_t err = ChanMux_write(data->id, len_to_write, &len_written);
         if (err != SEOS_SUCCESS)
         {
             Debug_LOG_ERROR("ChanMux_write() failed, error %d", err);
             return SEOS_ERROR_GENERIC;
         }
 
-        if (len_chunk != len_written)
+        Debug_ASSERT(len_written <= len_to_write);
+        if (len_written != len_to_write)
         {
             Debug_LOG_WARNING("ChanMux_write() wrote only %zu of %zu bytes",
-                              len_written, len_chunk);
-            Debug_ASSERT(len_written <= len_chunk);
+                              len_written, len_to_write);
+            return SEOS_ERROR_GENERIC;
         }
 
-        Debug_ASSERT(remain_len <= len_written);
-        remain_len -= len_written;
-        offset_nw_out += len_written;
+        // len_written may include the frame length header, but remain_len does
+        // not contain is. Thus we have to use len_chunk here.
+        Debug_ASSERT(remain_len <= len_chunk);
+        remain_len -= len_chunk;
+        offset_nw_out += len_chunk;
+
+        // full port buffer is available again
+        port_offset = 0;
+        port_len = data->port_write.len;
     }
 
     *pLen = len;
