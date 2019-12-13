@@ -100,8 +100,11 @@ chanmux_nic_driver_loop(void)
             // in error state we simply drop all remaining data
             if (RECEIVE_ERROR == state)
             {
-                Debug_LOG_ERROR("state RECEIVE_ERROR, drop %zu bytes", buffer_len);
-                buffer_len = 0;
+                if (0 != buffer_len)
+                {
+                    Debug_LOG_ERROR("state RECEIVE_ERROR, drop %zu bytes", buffer_len);
+                    buffer_len = 0;
+                }
             }
             else if (doRead)
             {
