@@ -118,9 +118,9 @@ chanmux_nic_driver_loop(void)
                                           &buffer_len);
             if (err != SEOS_SUCCESS)
             {
-                Debug_LOG_ERROR("ChanMux_read() %s failed, state=%d, error %d",
+                Debug_LOG_ERROR("ChanMux_read() %s, error %d, state=%d",
                                 (SEOS_ERROR_OVERFLOW_DETECTED == err) ? "reported OVERFLOW" : "failed",
-                                size_len, err);
+                                err, err);
                 state = RECEIVE_ERROR;
             }
 
