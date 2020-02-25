@@ -95,3 +95,13 @@ SeosNwChanmux_get_mac(
     const ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                 chan_id_data,
     uint8_t*                     mac);
+
+seos_err_t
+SeosNwChanmux_stopData(
+    const ChanMux_channelCtx_t*  channel_ctrl,
+    unsigned int                 chan_id_data);
+
+seos_err_t
+SeosNwChanmux_startData(
+    const ChanMux_channelCtx_t*  channel_ctrl,
+    unsigned int                 chan_id_data);

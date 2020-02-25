@@ -49,6 +49,7 @@ chanmux_nic_driver_init(void)
 seos_err_t
 chanmux_nic_driver_loop(void)
 {
+    const ChanMux_channelCtx_t* ctrl = get_chanmux_channel_ctrl();
     const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
 
     const seos_shared_buffer_t* nw_input = get_network_stack_port_to();
@@ -84,6 +85,15 @@ chanmux_nic_driver_loop(void)
     int doRead = true;
     int doDropFrame = false;
 
+    // The Proxy needs to get a START command in order to
+    // forward frames from the TAP interface
+    seos_err_t err = SeosNwChanmux_startData(ctrl, data->id);
+    if (err != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("SeosNwChanmux_startData, code %d", err);
+        return err;
+    }
+
     for (;;)
     {
         // we only block on reading new data if there is an explicit request to
@@ -96,14 +106,44 @@ chanmux_nic_driver_loop(void)
         //       a reset of the NIC driver.
         while (doRead || (RECEIVE_ERROR == state))
         {
-
             // in error state we simply drop all remaining data
             if (RECEIVE_ERROR == state)
             {
+                /// WARNING: this recovery mechanism should be based on
+                /// inter-bytes delays as well but at the moment the timer
+                /// server that should provide us the getTime() facility cannot
+                /// handle more than one client
+                Debug_LOG_WARNING("Chanmux receive error, resetting FIFO");
+                seos_err_t err = SeosNwChanmux_stopData(ctrl, data->id);
+                if (err != SEOS_SUCCESS)
+                {
+                    Debug_LOG_ERROR("SeosNwChanmux_stopData failed, code %d", err);
+                    return err;
+                }
+
                 if (0 != buffer_len)
                 {
                     Debug_LOG_ERROR("state RECEIVE_ERROR, drop %zu bytes", buffer_len);
                     buffer_len = 0;
+                }
+                // drain the channel FIFO
+                do
+                {
+                    err = ChanMux_read(data->id, sizeof(buffer), &buffer_len);
+                    if (err == SEOS_ERROR_OVERFLOW_DETECTED)
+                    {
+                        continue;
+                    }
+                }
+                while (buffer_len > 0);
+
+                state = RECEIVE_FRAME_START;
+
+                err = SeosNwChanmux_startData(ctrl, data->id);
+                if (err != SEOS_SUCCESS)
+                {
+                    Debug_LOG_ERROR("SeosNwChanmux_startData, code %d", err);
+                    return err;
                 }
             }
             else if (doRead)

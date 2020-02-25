@@ -185,3 +185,73 @@ SeosNwChanmux_get_mac(
 
     return SEOS_SUCCESS;
 }
+
+//------------------------------------------------------------------------------
+seos_err_t
+SeosNwChanmux_stopData(
+    const ChanMux_channelCtx_t*  channel_ctrl,
+    unsigned int                 chan_id_data)
+{
+    seos_err_t ret;
+
+    uint8_t cmd[2] = { CHANMUX_NIC_CMD_STOP_READ, chan_id_data };
+    ret = chanmux_ctrl_write(channel_ctrl, cmd, sizeof(cmd));
+    if (ret != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("sending STOP_READ returned error %d", ret);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    // 2 byte response
+    uint8_t rsp[2];
+    ret = chanmux_ctrl_readBlocking(channel_ctrl, rsp, sizeof(rsp));
+    if (ret != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("reading response for STOP_READ returned error %d", ret);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    uint8_t rsp_result = rsp[0];
+    if (rsp_result != CHANMUX_NIC_RSP_STOP_READ)
+    {
+        Debug_LOG_ERROR("command STOP_READ failed, status code %u", rsp_result);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    return SEOS_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+seos_err_t
+SeosNwChanmux_startData(
+    const ChanMux_channelCtx_t*  channel_ctrl,
+    unsigned int                 chan_id_data)
+{
+    seos_err_t ret;
+
+    uint8_t cmd[2] = { CHANMUX_NIC_CMD_START_READ, chan_id_data };
+    ret = chanmux_ctrl_write(channel_ctrl, cmd, sizeof(cmd));
+    if (ret != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("sending START_READ returned error %d", ret);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    // 2 byte response
+    uint8_t rsp[2];
+    ret = chanmux_ctrl_readBlocking(channel_ctrl, rsp, sizeof(rsp));
+    if (ret != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("reading response for START_READ returned error %d", ret);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    uint8_t rsp_result = rsp[0];
+    if (rsp_result != CHANMUX_NIC_RSP_START_READ)
+    {
+        Debug_LOG_ERROR("command START_READ failed, status code %u", rsp_result);
+        return SEOS_ERROR_GENERIC;
+    }
+
+    return SEOS_SUCCESS;
+}
