@@ -16,6 +16,8 @@
 const ChanMux_channelCtx_t* get_chanmux_channel_ctrl(void);
 const ChanMux_channelDuplexCtx_t* get_chanmux_channel_data(void);
 void chanmux_wait(void);
+seos_err_t chanmux_channel_ctrl_mutex_lock(void);
+seos_err_t chanmux_channel_ctrl_mutex_unlock(void);
 const seos_shared_buffer_t* get_network_stack_port_to(void);
 const seos_shared_buffer_t* get_network_stack_port_from(void);
 void network_stack_notify(void);

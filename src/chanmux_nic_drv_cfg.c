@@ -26,6 +26,48 @@ get_chanmux_channel_ctrl(void)
 
 
 //------------------------------------------------------------------------------
+seos_err_t
+chanmux_channel_ctrl_mutex_lock(void)
+{
+    mutex_lock_func_t lock = camkes_cfg->nic_control_channel_mutex.lock;
+    if (!lock)
+    {
+        Debug_LOG_ERROR("nic_control_channel_mutex.lock not set");
+        return SEOS_ERROR_ABORTED;
+    }
+
+    int ret = lock();
+
+    if (ret != 0)
+    {
+        Debug_LOG_ERROR("Failure getting lock, returned %d", ret);
+        return SEOS_ERROR_ABORTED;
+    }
+    return SEOS_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+seos_err_t
+chanmux_channel_ctrl_mutex_unlock(void)
+{
+    mutex_unlock_func_t unlock = camkes_cfg->nic_control_channel_mutex.unlock;
+    if (!unlock)
+    {
+        Debug_LOG_ERROR("nic_control_channel_mutex.unlock not set");
+        return SEOS_ERROR_ABORTED;
+    }
+
+    int ret = unlock();
+
+    if (ret != 0)
+    {
+        Debug_LOG_ERROR("Failure releasing lock, returned %d", ret);
+        return SEOS_ERROR_ABORTED;
+    }
+    return SEOS_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 const ChanMux_channelDuplexCtx_t*
 get_chanmux_channel_data(void)
 {

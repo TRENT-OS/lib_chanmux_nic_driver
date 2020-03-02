@@ -100,9 +100,61 @@ chanmux_ctrl_readBlocking(
             lenRemaining -= chunk_read;
         }
     }
+    return SEOS_SUCCESS;
+}
+
+
+seos_err_t
+SeosNwChanmux_do_request_reply(
+    const  ChanMux_channelCtx_t*  channel_ctrl,
+    uint8_t*                      cmd,
+    size_t                        cmd_len,
+    uint8_t*                      rsp,
+    size_t                        rsp_len)
+{
+    seos_err_t ret;
+    ret = chanmux_ctrl_write(channel_ctrl, cmd, cmd_len);
+    if (ret != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Writing command for %d returned error %d", cmd[0], ret);
+        return ret;
+    }
+    ret = chanmux_ctrl_readBlocking(channel_ctrl, rsp, rsp_len);
+    if (ret != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Reading response for %d returned error %d", cmd[0], ret);
+        return ret;
+    }
 
     return SEOS_SUCCESS;
 }
+
+seos_err_t
+SeosNwChanmux_serialize(
+    const  ChanMux_channelCtx_t*  channel_ctrl,
+    uint8_t*                      cmd,
+    size_t                        cmd_len,
+    uint8_t*                      rsp,
+    size_t                        rsp_len)
+{
+    seos_err_t ret;
+    seos_err_t ret_mux;
+    ret_mux = chanmux_channel_ctrl_mutex_lock();
+    if (ret_mux != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Failure getting lock, returned %d", ret_mux);
+    }
+    ret = SeosNwChanmux_do_request_reply(channel_ctrl, cmd, cmd_len, rsp, rsp_len);
+    ret_mux = chanmux_channel_ctrl_mutex_unlock();
+    if (ret_mux != SEOS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Failure releasing lock, returned %d", ret_mux);
+    }
+
+    return ret;
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -114,22 +166,13 @@ SeosNwChanmux_open(
     seos_err_t ret;
 
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_OPEN, chan_id_data };
-    ret = chanmux_ctrl_write(channel_ctrl, cmd, sizeof(cmd));
-    if (ret != SEOS_SUCCESS)
-    {
-        Debug_LOG_ERROR("sending OPEN returned error %d", ret);
-        return SEOS_ERROR_GENERIC;
-    }
-
-    // 2 byte response
     uint8_t rsp[2];
-    ret = chanmux_ctrl_readBlocking(channel_ctrl, rsp, sizeof(rsp));
+    ret = SeosNwChanmux_serialize(channel_ctrl, cmd, sizeof(cmd), rsp, sizeof(rsp));
     if (ret != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("reading response for OPEN returned error %d", ret);
+        Debug_LOG_ERROR("Sending OPEN returned error %d", ret);
         return SEOS_ERROR_GENERIC;
     }
-
     uint8_t rsp_result = rsp[0];
     if (rsp_result != CHANMUX_NIC_RSP_OPEN)
     {
@@ -150,30 +193,22 @@ SeosNwChanmux_get_mac(
 {
     seos_err_t ret;
 
-    uint8_t cmd[2] = { CHANMUX_NIC_CMD_GET_MAC, chan_id_data };
-    ret = chanmux_ctrl_write(channel_ctrl, cmd, sizeof(cmd));
-    if (ret != SEOS_SUCCESS)
-    {
-        Debug_LOG_ERROR("sending GETMAC returned error %d", ret);
-        return SEOS_ERROR_GENERIC;
-    }
 
+    uint8_t cmd[2] = { CHANMUX_NIC_CMD_GET_MAC, chan_id_data };
     // 8 byte response (2 byte status and 6 byte MAC)
     uint8_t rsp[8];
-    ret = chanmux_ctrl_readBlocking(channel_ctrl, rsp, sizeof(rsp));
+    ret = SeosNwChanmux_serialize(channel_ctrl, cmd, sizeof(cmd), rsp, sizeof(rsp));
     if (ret != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("reading response for GETMAC returned error %d", ret);
+        Debug_LOG_ERROR("Sending GET_MAC returned error %d", ret);
         return SEOS_ERROR_GENERIC;
     }
-
     uint8_t rsp_result = rsp[0];
     if (rsp_result != CHANMUX_NIC_RSP_GET_MAC)
     {
         Debug_LOG_ERROR("command GETMAC failed, status code %u", rsp_result);
         return SEOS_ERROR_GENERIC;
     }
-
     uint8_t rsp_ctx = rsp[1];
     if (rsp_ctx != 0)
     {
@@ -193,24 +228,15 @@ SeosNwChanmux_stopData(
     unsigned int                 chan_id_data)
 {
     seos_err_t ret;
-
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_STOP_READ, chan_id_data };
-    ret = chanmux_ctrl_write(channel_ctrl, cmd, sizeof(cmd));
-    if (ret != SEOS_SUCCESS)
-    {
-        Debug_LOG_ERROR("sending STOP_READ returned error %d", ret);
-        return SEOS_ERROR_GENERIC;
-    }
-
     // 2 byte response
     uint8_t rsp[2];
-    ret = chanmux_ctrl_readBlocking(channel_ctrl, rsp, sizeof(rsp));
+    ret = SeosNwChanmux_serialize(channel_ctrl, cmd, sizeof(cmd), rsp, sizeof(rsp));
     if (ret != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("reading response for STOP_READ returned error %d", ret);
+        Debug_LOG_ERROR("Sending STOP_READ returned error %d", ret);
         return SEOS_ERROR_GENERIC;
     }
-
     uint8_t rsp_result = rsp[0];
     if (rsp_result != CHANMUX_NIC_RSP_STOP_READ)
     {
@@ -228,24 +254,15 @@ SeosNwChanmux_startData(
     unsigned int                 chan_id_data)
 {
     seos_err_t ret;
-
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_START_READ, chan_id_data };
-    ret = chanmux_ctrl_write(channel_ctrl, cmd, sizeof(cmd));
-    if (ret != SEOS_SUCCESS)
-    {
-        Debug_LOG_ERROR("sending START_READ returned error %d", ret);
-        return SEOS_ERROR_GENERIC;
-    }
-
     // 2 byte response
     uint8_t rsp[2];
-    ret = chanmux_ctrl_readBlocking(channel_ctrl, rsp, sizeof(rsp));
+    ret = SeosNwChanmux_serialize(channel_ctrl, cmd, sizeof(cmd), rsp, sizeof(rsp));
     if (ret != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("reading response for START_READ returned error %d", ret);
+        Debug_LOG_ERROR("Sending START_READ returned error %d", ret);
         return SEOS_ERROR_GENERIC;
     }
-
     uint8_t rsp_result = rsp[0];
     if (rsp_result != CHANMUX_NIC_RSP_START_READ)
     {
