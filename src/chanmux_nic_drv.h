@@ -28,43 +28,6 @@ void network_stack_notify(void);
 seos_err_t chanmux_nic_driver_init(void);
 seos_err_t chanmux_nic_driver_loop(void);
 
-
-/**
- * @details %ChanMux_write, Write data using ChanMux
- *
- * @ingroup SeosNwChanmuxIf
- * @param chan: channel
- * @param len: Length of data to write
- * @param *written: is pointer to written which will contain how much of data was
-                    actually written by Chanmux
- * @return Success or Failure.
- * @retval SEOS_SUCCESS or SEOS_ERROR_GENERIC
- *
- */
-seos_err_t ChanMux_write(
-    unsigned int  chan,
-    size_t        len,
-    size_t*       written);
-
-
-/**
- * @details %ChanMux_read, Read data using ChanMux
- * @ingroup SeosNwChanmuxIf
- *
- * @param chan: channel
- * @param len: Length of data to read
- * @param *read: is pointer to read which will contain how much of data was
- *               actually read by Chanmux
- * @return Success or Failure.
- * @retval SEOS_SUCCESS or SEOS_ERROR_GENERIC
- *
- */
-seos_err_t ChanMux_read(
-    unsigned int  chan,
-    size_t        len,
-    size_t*       read);
-
-
 /**
  * @details open ethernet device simulated via ChanMUX
  * @ingroup SeosNwChanmuxIf

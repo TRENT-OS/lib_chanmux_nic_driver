@@ -6,6 +6,7 @@
  */
 
 #include "LibDebug/Debug.h"
+#include "ChanMux/ChanMuxRpc.h"
 #include "SeosError.h"
 #include "seos_chanmux.h"
 #include "seos_ethernet.h"
@@ -129,7 +130,7 @@ chanmux_nic_driver_loop(void)
                 // drain the channel FIFO
                 do
                 {
-                    err = ChanMux_read(data->id, sizeof(buffer), &buffer_len);
+                    err = ChanMuxRpc_read(data->id, sizeof(buffer), &buffer_len);
                     if (err == SEOS_ERROR_OVERFLOW_DETECTED)
                     {
                         continue;
@@ -159,9 +160,9 @@ chanmux_nic_driver_loop(void)
             // read as much data as possible from the ChanMUX channel FIFO into
             // the shared memory data port. We do this even in the state
             // RECEIVE_ERROR, because we have to drain the FIFOs.
-            seos_err_t err = ChanMux_read(data->id,
-                                          sizeof(buffer),
-                                          &buffer_len);
+            seos_err_t err = ChanMuxRpc_read(data->id,
+                                             sizeof(buffer),
+                                             &buffer_len);
             if (err != SEOS_SUCCESS)
             {
                 Debug_LOG_ERROR("ChanMux_read() %s, error %d, state=%d",
@@ -464,17 +465,17 @@ seos_err_t seos_chanmux_nic_driver_rpc_tx_data(
         // the frame length prefix.
         size_t len_to_write = port_offset + len_chunk;
         size_t len_written = 0;
-        seos_err_t err = ChanMux_write(data->id, len_to_write, &len_written);
+        seos_err_t err = ChanMuxRpc_write(data->id, len_to_write, &len_written);
         if (err != SEOS_SUCCESS)
         {
-            Debug_LOG_ERROR("ChanMux_write() failed, error %d", err);
+            Debug_LOG_ERROR("ChanMuxRpc_write() failed, error %d", err);
             return SEOS_ERROR_GENERIC;
         }
 
         Debug_ASSERT(len_written <= len_to_write);
         if (len_written != len_to_write)
         {
-            Debug_LOG_WARNING("ChanMux_write() wrote only %zu of %zu bytes",
+            Debug_LOG_WARNING("ChanMuxRpc_write() wrote only %zu of %zu bytes",
                               len_written, len_to_write);
             return SEOS_ERROR_GENERIC;
         }
