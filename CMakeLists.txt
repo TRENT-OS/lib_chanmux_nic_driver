@@ -25,5 +25,5 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     INTERFACE
         seos_core_api
-        seos_libs
+        chanmux_client
 )
