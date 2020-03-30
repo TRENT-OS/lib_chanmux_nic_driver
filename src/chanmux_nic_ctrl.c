@@ -9,7 +9,7 @@
 
 #include "LibDebug/Debug.h"
 #include "ChanMux/ChanMuxRpc.h"
-#include "seos_ethernet.h"
+#include "os_util/seos_ethernet.h"
 #include "seos_chanmux_nic.h"
 #include "chanmux_nic_drv.h"
 #include "seos_api_chanmux_nic_drv.h"

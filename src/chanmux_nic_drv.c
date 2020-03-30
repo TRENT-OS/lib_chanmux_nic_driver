@@ -9,8 +9,8 @@
 #include "ChanMux/ChanMuxRpc.h"
 #include "SeosError.h"
 #include "seos_chanmux.h"
-#include "seos_ethernet.h"
-#include "seos_network_stack.h"
+#include "os_util/seos_ethernet.h"
+#include "os_util/seos_network_stack.h"
 #include "chanmux_nic_drv.h"
 #include <sel4/sel4.h> // needed for seL4_yield()
 #include <string.h>
