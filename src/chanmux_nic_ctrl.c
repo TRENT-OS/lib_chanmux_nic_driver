@@ -1,5 +1,5 @@
 /*
- *  SEOS Network Stack ChanMux wrapper driver Interface. This interacts with Chanmux for write/read
+ *  ChanMUX Ethernet TAP driver, control channel handling
  *
  *
  *  Copyright (C) 2019, Hensoldt Cyber GmbH
