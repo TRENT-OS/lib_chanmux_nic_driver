@@ -105,6 +105,7 @@ chanmux_ctrl_readBlocking(
 }
 
 
+//------------------------------------------------------------------------------
 seos_err_t
 SeosNwChanmux_do_request_reply(
     const  ChanMux_channelCtx_t*  channel_ctrl,
@@ -130,6 +131,8 @@ SeosNwChanmux_do_request_reply(
     return SEOS_SUCCESS;
 }
 
+
+//------------------------------------------------------------------------------
 seos_err_t
 SeosNwChanmux_serialize(
     const  ChanMux_channelCtx_t*  channel_ctrl,
@@ -154,8 +157,6 @@ SeosNwChanmux_serialize(
 
     return ret;
 }
-
-
 
 
 //------------------------------------------------------------------------------
@@ -222,6 +223,7 @@ SeosNwChanmux_get_mac(
     return SEOS_SUCCESS;
 }
 
+
 //------------------------------------------------------------------------------
 seos_err_t
 SeosNwChanmux_stopData(
@@ -247,6 +249,7 @@ SeosNwChanmux_stopData(
 
     return SEOS_SUCCESS;
 }
+
 
 //------------------------------------------------------------------------------
 seos_err_t
