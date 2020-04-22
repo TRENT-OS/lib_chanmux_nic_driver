@@ -15,10 +15,6 @@
 
 typedef struct
 {
-    // if the driver initialization is complete, this notification is triggered
-    // and the driver can be used by the network stack to send and receive data
-    event_notify_func_t       notify_init_complete;
-
     struct
     {
         ChanMux_channelCtx_t        ctrl;
@@ -43,16 +39,26 @@ typedef struct
 
 
 /**
- * @brief run the ChanMUX-Proxy-TAP ethernet driver
+ * @brief initialize the driver
  *
  * @param config configuration for the driver
  *
- * @return an error code is returned if something fails, otherwise the function
- *         is not supposed to return. It may terminate gracefully
+ * @return SEOS_ERROR_GENERIC initialization failed
+ * @return SEOS_SUCCESS initialization successful
  */
 seos_err_t
-chanmux_nic_driver_run(
+chanmux_nic_driver_init(
     const chanmux_nic_drv_config_t*  driver_config);
+
+
+/**
+ * @brief run the driver main loop
+ *
+ * @return SEOS_ERROR_GENERIC driver main loop failed
+ * @return SEOS_SUCCESS driver main loop terminated gracefully
+ */
+seos_err_t
+chanmux_nic_driver_run(void);
 
 
 seos_err_t

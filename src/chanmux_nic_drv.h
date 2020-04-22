@@ -25,7 +25,6 @@ void network_stack_notify(void);
 //------------------------------------------------------------------------------
 // internal functions
 //------------------------------------------------------------------------------
-seos_err_t chanmux_nic_driver_init(void);
 seos_err_t chanmux_nic_driver_loop(void);
 
 /**

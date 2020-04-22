@@ -17,34 +17,6 @@
 
 
 //------------------------------------------------------------------------------
-seos_err_t
-chanmux_nic_driver_init(void)
-{
-    seos_err_t err;
-
-    // initialize the shared memory, there is no data waiting in the buffer
-    const seos_shared_buffer_t* nw_input = get_network_stack_port_to();
-    Rx_Buffer* nw_rx = (Rx_Buffer*)nw_input->buffer;
-    nw_rx->len = 0;
-
-    // initialize the ChanMUX/Proxy connection
-    const ChanMux_channelCtx_t* ctrl = get_chanmux_channel_ctrl();
-    const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
-
-    Debug_LOG_INFO("ChanMUX channels: ctrl=%u, data=%u", ctrl->id, data->id);
-
-    err = chanmux_nic_channel_open(ctrl, data->id);
-    if (err != SEOS_SUCCESS)
-    {
-        Debug_LOG_ERROR("chanmux_nic_channel_open() failed, error:%d", err);
-        return SEOS_ERROR_GENERIC;
-    }
-
-    return SEOS_SUCCESS;
-}
-
-
-//------------------------------------------------------------------------------
 // Receive loop, waits for an interrupt signal from ChanMUX, reads data and
 // notifies network stack when a frame is available
 seos_err_t

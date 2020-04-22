@@ -9,6 +9,7 @@
 #include "seos_chanmux.h"
 #include "chanmux_nic_drv.h"
 #include "chanmux_nic_drv_api.h"
+#include "os_util/seos_network_stack.h"
 
 static const chanmux_nic_drv_config_t* config;
 
@@ -142,28 +143,45 @@ network_stack_notify(void)
 
 //------------------------------------------------------------------------------
 seos_err_t
-chanmux_nic_driver_run(
+chanmux_nic_driver_init(
     const chanmux_nic_drv_config_t*  driver_config)
 {
-    seos_err_t err;
+    Debug_LOG_INFO("network driver init");
 
     // save configuration
     config = driver_config;
 
-    // initialize driver
-    err = chanmux_nic_driver_init();
+    // initialize the shared memory, there is no data waiting in the buffer
+    const seos_shared_buffer_t* nw_input = get_network_stack_port_to();
+    Rx_Buffer* nw_rx = (Rx_Buffer*)nw_input->buffer;
+    nw_rx->len = 0;
+
+    // initialize the ChanMUX/Proxy connection
+    const ChanMux_channelCtx_t* ctrl = get_chanmux_channel_ctrl();
+    const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
+
+    Debug_LOG_INFO("ChanMUX channels: ctrl=%u, data=%u", ctrl->id, data->id);
+
+    seos_err_t err = chanmux_nic_channel_open(ctrl, data->id);
     if (err != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("driver_init() failed, error %d", err);
+        Debug_LOG_ERROR("chanmux_nic_channel_open() failed, error:%d", err);
         return SEOS_ERROR_GENERIC;
     }
 
-    Debug_LOG_INFO("send driver init complete notification");
-    config->notify_init_complete();
+    Debug_LOG_INFO("network driver init successful");
 
+    return SEOS_SUCCESS;
+}
+
+
+//------------------------------------------------------------------------------
+seos_err_t
+chanmux_nic_driver_run(void)
+{
     Debug_LOG_INFO("start network driver loop");
     // this loop is not supposed to terminate
-    err = chanmux_nic_driver_loop();
+    seos_err_t err = chanmux_nic_driver_loop();
     if (err != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("chanmux_receive_loop() failed, error %d", err);
