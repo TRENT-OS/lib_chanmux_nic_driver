@@ -149,14 +149,15 @@ SeosNwChanmux_serialize(
     if (ret_mux != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("Failure getting lock, returned %d", ret_mux);
+        return SEOS_ERROR_GENERIC;
     }
 
     seos_err_t ret = SeosNwChanmux_do_request_reply(
-                        channel_ctrl,
-                        cmd, c
-                        md_len,
-                        rsp,
-                        rsp_len);
+                         channel_ctrl,
+                         cmd,
+                         cmd_len,
+                         rsp,
+                         rsp_len);
 
     ret_mux = chanmux_channel_ctrl_mutex_unlock();
     if (ret_mux != SEOS_SUCCESS)
