@@ -91,7 +91,7 @@ chanmux_nic_driver_loop(void)
     seos_err_t err = SeosNwChanmux_startData(ctrl, data->id);
     if (err != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("SeosNwChanmux_startData, code %d", err);
+        Debug_LOG_ERROR("SeosNwChanmux_startData() failed, code %d", err);
         return err;
     }
 
@@ -143,7 +143,7 @@ chanmux_nic_driver_loop(void)
                 err = SeosNwChanmux_startData(ctrl, data->id);
                 if (err != SEOS_SUCCESS)
                 {
-                    Debug_LOG_ERROR("SeosNwChanmux_startData, code %d", err);
+                    Debug_LOG_ERROR("SeosNwChanmux_startData() failed, code %d", err);
                     return err;
                 }
             }
@@ -165,7 +165,7 @@ chanmux_nic_driver_loop(void)
                                              &buffer_len);
             if (err != SEOS_SUCCESS)
             {
-                Debug_LOG_ERROR("ChanMux_read() %s, error %d, state=%d",
+                Debug_LOG_ERROR("ChanMuxRpc_read() %s, error %d, state=%d",
                                 (SEOS_ERROR_OVERFLOW_DETECTED == err) ? "reported OVERFLOW" : "failed",
                                 err, state);
                 state = RECEIVE_ERROR;
@@ -408,7 +408,8 @@ chanmux_nic_driver_loop(void)
 
 //------------------------------------------------------------------------------
 // called by network stack to send an ethernet frame
-seos_err_t seos_chanmux_nic_driver_rpc_tx_data(
+seos_err_t
+seos_chanmux_nic_driver_rpc_tx_data(
     size_t* pLen)
 {
     size_t len = *pLen;
@@ -498,7 +499,8 @@ seos_err_t seos_chanmux_nic_driver_rpc_tx_data(
 
 //------------------------------------------------------------------------------
 // called by network stack to get the MAC
-seos_err_t seos_chanmux_nic_driver_rpc_get_mac(void)
+seos_err_t
+seos_chanmux_nic_driver_rpc_get_mac(void)
 {
     const ChanMux_channelCtx_t* ctrl = get_chanmux_channel_ctrl();
     const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
@@ -528,7 +530,7 @@ seos_err_t seos_chanmux_nic_driver_rpc_get_mac(void)
 
     // ToDo: actually, the proxy is supposed to emulate a network interface
     //       with a proper MAC address. Currently, it uses a TAP device in
-    //       Linux and is seems things only work if we use a different MAC
+    //       Linux and it seems things only work if we use a different MAC
     //       address here - that's why we simply increment it by one. However,
     //       this is something the proxy should handle internally, we want to
     //       be agnostic of such things and just expect it to be a good network

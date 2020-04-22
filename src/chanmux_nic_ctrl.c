@@ -106,7 +106,7 @@ chanmux_ctrl_readBlocking(
 
 
 //------------------------------------------------------------------------------
-seos_err_t
+static seos_err_t
 SeosNwChanmux_do_request_reply(
     const  ChanMux_channelCtx_t*  channel_ctrl,
     uint8_t*                      cmd,
@@ -115,12 +115,14 @@ SeosNwChanmux_do_request_reply(
     size_t                        rsp_len)
 {
     seos_err_t ret;
+
     ret = chanmux_ctrl_write(channel_ctrl, cmd, cmd_len);
     if (ret != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("Writing command for %d returned error %d", cmd[0], ret);
         return ret;
     }
+
     ret = chanmux_ctrl_readBlocking(channel_ctrl, rsp, rsp_len);
     if (ret != SEOS_SUCCESS)
     {
@@ -133,7 +135,7 @@ SeosNwChanmux_do_request_reply(
 
 
 //------------------------------------------------------------------------------
-seos_err_t
+static seos_err_t
 SeosNwChanmux_serialize(
     const  ChanMux_channelCtx_t*  channel_ctrl,
     uint8_t*                      cmd,
@@ -141,14 +143,21 @@ SeosNwChanmux_serialize(
     uint8_t*                      rsp,
     size_t                        rsp_len)
 {
-    seos_err_t ret;
     seos_err_t ret_mux;
+
     ret_mux = chanmux_channel_ctrl_mutex_lock();
     if (ret_mux != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("Failure getting lock, returned %d", ret_mux);
     }
-    ret = SeosNwChanmux_do_request_reply(channel_ctrl, cmd, cmd_len, rsp, rsp_len);
+
+    seos_err_t ret = SeosNwChanmux_do_request_reply(
+                        channel_ctrl,
+                        cmd, c
+                        md_len,
+                        rsp,
+                        rsp_len);
+
     ret_mux = chanmux_channel_ctrl_mutex_unlock();
     if (ret_mux != SEOS_SUCCESS)
     {

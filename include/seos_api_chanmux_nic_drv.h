@@ -25,17 +25,20 @@ typedef struct
         ChanMux_channelDuplexCtx_t  data;
         event_notify_func_t         wait; // wait for incoming data
     } chanmux;
+
     struct
     {
         seos_shared_buffer_t  to;   // NIC -> stack
         seos_shared_buffer_t  from; // stack -> NIC
         event_notify_func_t   notify; // one ore more frames are available
     } network_stack;
+
     struct
     {
-        mutex_lock_func_t lock;
-        mutex_unlock_func_t unlock;
+        mutex_lock_func_t    lock;
+        mutex_unlock_func_t  unlock;
     } nic_control_channel_mutex;
+
 } seos_camkes_chanmx_nic_drv_config_t;
 
 

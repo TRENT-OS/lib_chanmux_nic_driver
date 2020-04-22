@@ -46,6 +46,7 @@ chanmux_channel_ctrl_mutex_lock(void)
     return SEOS_SUCCESS;
 }
 
+
 //------------------------------------------------------------------------------
 seos_err_t
 chanmux_channel_ctrl_mutex_unlock(void)
@@ -66,6 +67,7 @@ chanmux_channel_ctrl_mutex_unlock(void)
     }
     return SEOS_SUCCESS;
 }
+
 
 //------------------------------------------------------------------------------
 const ChanMux_channelDuplexCtx_t*
@@ -152,7 +154,7 @@ seos_chanmux_nic_driver_run(
     err = chanmux_nic_driver_init();
     if (err != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("driver_init() failed, error:%d", err);
+        Debug_LOG_ERROR("driver_init() failed, error %d", err);
         return SEOS_ERROR_GENERIC;
     }
 
@@ -164,7 +166,7 @@ seos_chanmux_nic_driver_run(
     err = chanmux_nic_driver_loop();
     if (err != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("chanmux_receive_loop() failed, error:%d", err);
+        Debug_LOG_ERROR("chanmux_receive_loop() failed, error %d", err);
         return SEOS_ERROR_GENERIC;
     }
 
