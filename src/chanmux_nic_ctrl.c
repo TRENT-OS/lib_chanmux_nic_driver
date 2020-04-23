@@ -12,7 +12,7 @@
 #include "os_util/seos_ethernet.h"
 #include "seos_chanmux_nic.h"
 #include "chanmux_nic_drv.h"
-#include "seos_api_chanmux_nic_drv.h"
+#include "chanmux_nic_drv_api.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
@@ -107,7 +107,7 @@ chanmux_ctrl_readBlocking(
 
 //------------------------------------------------------------------------------
 static seos_err_t
-SeosNwChanmux_do_request_reply(
+chanmux_nic_channel_ctrl_request_reply(
     const  ChanMux_channelCtx_t*  channel_ctrl,
     uint8_t*                      cmd,
     size_t                        cmd_len,
@@ -136,7 +136,7 @@ SeosNwChanmux_do_request_reply(
 
 //------------------------------------------------------------------------------
 static seos_err_t
-SeosNwChanmux_serialize(
+chanmux_nic_channel_ctrl_cmd(
     const  ChanMux_channelCtx_t*  channel_ctrl,
     uint8_t*                      cmd,
     size_t                        cmd_len,
@@ -152,13 +152,14 @@ SeosNwChanmux_serialize(
         return SEOS_ERROR_GENERIC;
     }
 
-    seos_err_t ret = SeosNwChanmux_do_request_reply(
+    seos_err_t ret = chanmux_nic_channel_ctrl_request_reply(
                          channel_ctrl,
                          cmd,
                          cmd_len,
                          rsp,
                          rsp_len);
 
+    // we have to release the mutex even if the command failed
     ret_mux = chanmux_channel_ctrl_mutex_unlock();
     if (ret_mux != SEOS_SUCCESS)
     {
@@ -171,7 +172,7 @@ SeosNwChanmux_serialize(
 
 //------------------------------------------------------------------------------
 seos_err_t
-SeosNwChanmux_open(
+chanmux_nic_channel_open(
     const  ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                  chan_id_data)
 {
@@ -179,7 +180,12 @@ SeosNwChanmux_open(
 
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_OPEN, chan_id_data };
     uint8_t rsp[2];
-    ret = SeosNwChanmux_serialize(channel_ctrl, cmd, sizeof(cmd), rsp, sizeof(rsp));
+    ret = chanmux_nic_channel_ctrl_cmd(
+              channel_ctrl,
+              cmd,
+              sizeof(cmd),
+              rsp,
+              sizeof(rsp));
     if (ret != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("Sending OPEN returned error %d", ret);
@@ -198,7 +204,7 @@ SeosNwChanmux_open(
 
 //------------------------------------------------------------------------------
 seos_err_t
-SeosNwChanmux_get_mac(
+chanmux_nic_ctrl_get_mac(
     const ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                 chan_id_data,
     uint8_t*                     mac)
@@ -209,7 +215,12 @@ SeosNwChanmux_get_mac(
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_GET_MAC, chan_id_data };
     // 8 byte response (2 byte status and 6 byte MAC)
     uint8_t rsp[8];
-    ret = SeosNwChanmux_serialize(channel_ctrl, cmd, sizeof(cmd), rsp, sizeof(rsp));
+    ret = chanmux_nic_channel_ctrl_cmd(
+              channel_ctrl,
+              cmd,
+              sizeof(cmd),
+              rsp,
+              sizeof(rsp));
     if (ret != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("Sending GET_MAC returned error %d", ret);
@@ -236,7 +247,7 @@ SeosNwChanmux_get_mac(
 
 //------------------------------------------------------------------------------
 seos_err_t
-SeosNwChanmux_stopData(
+chanmux_nic_ctrl_stopData(
     const ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                 chan_id_data)
 {
@@ -244,7 +255,11 @@ SeosNwChanmux_stopData(
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_STOP_READ, chan_id_data };
     // 2 byte response
     uint8_t rsp[2];
-    ret = SeosNwChanmux_serialize(channel_ctrl, cmd, sizeof(cmd), rsp, sizeof(rsp));
+    ret = chanmux_nic_channel_ctrl_cmd(
+              channel_ctrl,
+              cmd, sizeof(cmd),
+              rsp,
+              sizeof(rsp));
     if (ret != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("Sending STOP_READ returned error %d", ret);
@@ -263,7 +278,7 @@ SeosNwChanmux_stopData(
 
 //------------------------------------------------------------------------------
 seos_err_t
-SeosNwChanmux_startData(
+chanmux_nic_ctrl_startData(
     const ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                 chan_id_data)
 {
@@ -271,7 +286,12 @@ SeosNwChanmux_startData(
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_START_READ, chan_id_data };
     // 2 byte response
     uint8_t rsp[2];
-    ret = SeosNwChanmux_serialize(channel_ctrl, cmd, sizeof(cmd), rsp, sizeof(rsp));
+    ret = chanmux_nic_channel_ctrl_cmd(
+              channel_ctrl,
+              cmd,
+              sizeof(cmd),
+              rsp,
+              sizeof(rsp));
     if (ret != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("Sending START_READ returned error %d", ret);

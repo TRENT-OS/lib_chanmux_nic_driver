@@ -39,7 +39,7 @@ seos_err_t chanmux_nic_driver_loop(void);
  *
  */
 seos_err_t
-SeosNwChanmux_open(
+chanmux_nic_channel_open(
     const ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                 chan_id_data);
 
@@ -56,17 +56,17 @@ SeosNwChanmux_open(
  *
  */
 seos_err_t
-SeosNwChanmux_get_mac(
+chanmux_nic_ctrl_get_mac(
     const ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                 chan_id_data,
     uint8_t*                     mac);
 
 seos_err_t
-SeosNwChanmux_stopData(
+chanmux_nic_ctrl_stopData(
     const ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                 chan_id_data);
 
 seos_err_t
-SeosNwChanmux_startData(
+chanmux_nic_ctrl_startData(
     const ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                 chan_id_data);

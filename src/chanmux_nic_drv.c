@@ -33,10 +33,10 @@ chanmux_nic_driver_init(void)
 
     Debug_LOG_INFO("ChanMUX channels: ctrl=%u, data=%u", ctrl->id, data->id);
 
-    err = SeosNwChanmux_open(ctrl, data->id);
+    err = chanmux_nic_channel_open(ctrl, data->id);
     if (err != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("SeosNwChanmux_open() failed, error:%d", err);
+        Debug_LOG_ERROR("chanmux_nic_channel_open() failed, error:%d", err);
         return SEOS_ERROR_GENERIC;
     }
 
@@ -88,10 +88,10 @@ chanmux_nic_driver_loop(void)
 
     // The Proxy needs to get a START command in order to
     // forward frames from the TAP interface
-    seos_err_t err = SeosNwChanmux_startData(ctrl, data->id);
+    seos_err_t err = chanmux_nic_ctrl_startData(ctrl, data->id);
     if (err != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("SeosNwChanmux_startData() failed, code %d", err);
+        Debug_LOG_ERROR("chanmux_nic_ctrl_startData() failed, code %d", err);
         return err;
     }
 
@@ -115,10 +115,10 @@ chanmux_nic_driver_loop(void)
                 /// server that should provide us the getTime() facility cannot
                 /// handle more than one client
                 Debug_LOG_WARNING("Chanmux receive error, resetting FIFO");
-                seos_err_t err = SeosNwChanmux_stopData(ctrl, data->id);
+                seos_err_t err = chanmux_nic_ctrl_stopData(ctrl, data->id);
                 if (err != SEOS_SUCCESS)
                 {
-                    Debug_LOG_ERROR("SeosNwChanmux_stopData failed, code %d", err);
+                    Debug_LOG_ERROR("chanmux_nic_ctrl_stopData() failed, code %d", err);
                     return err;
                 }
 
@@ -140,10 +140,10 @@ chanmux_nic_driver_loop(void)
 
                 state = RECEIVE_FRAME_START;
 
-                err = SeosNwChanmux_startData(ctrl, data->id);
+                err = chanmux_nic_ctrl_startData(ctrl, data->id);
                 if (err != SEOS_SUCCESS)
                 {
-                    Debug_LOG_ERROR("SeosNwChanmux_startData() failed, code %d", err);
+                    Debug_LOG_ERROR("chanmux_nic_ctrl_startData() failed, code %d", err);
                     return err;
                 }
             }
@@ -409,7 +409,7 @@ chanmux_nic_driver_loop(void)
 //------------------------------------------------------------------------------
 // called by network stack to send an ethernet frame
 seos_err_t
-seos_chanmux_nic_driver_rpc_tx_data(
+chanmux_nic_driver_rpc_tx_data(
     size_t* pLen)
 {
     size_t len = *pLen;
@@ -500,19 +500,17 @@ seos_chanmux_nic_driver_rpc_tx_data(
 //------------------------------------------------------------------------------
 // called by network stack to get the MAC
 seos_err_t
-seos_chanmux_nic_driver_rpc_get_mac(void)
+chanmux_nic_driver_rpc_get_mac(void)
 {
     const ChanMux_channelCtx_t* ctrl = get_chanmux_channel_ctrl();
     const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
 
     // ChanMUX simulates an ethernet device, get the MAC address from it
     uint8_t mac[MAC_SIZE] = {0};
-    seos_err_t err = SeosNwChanmux_get_mac(ctrl, data->id, mac);
+    seos_err_t err = chanmux_nic_ctrl_get_mac(ctrl, data->id, mac);
     if (err != SEOS_SUCCESS)
     {
-        Debug_LOG_ERROR("SeosNwChanmux_get_mac() failed, error %d", err);
-
-        // ToDo: close SeosNwChanmux channel
+        Debug_LOG_ERROR("chanmux_nic_ctrl_get_mac() failed, error %d", err);
         return SEOS_ERROR_GENERIC;
     }
 
@@ -521,7 +519,6 @@ seos_chanmux_nic_driver_rpc_get_mac(void)
     if (memcmp(mac, empty_mac, MAC_SIZE) == 0)
     {
         Debug_LOG_ERROR("MAC with all zeros is not allowed");
-        // ToDo: close SeosNwChanmux channel
         return SEOS_ERROR_GENERIC;
     }
 

@@ -1,5 +1,5 @@
 /*
- *  Seos_Driver_Config.c
+ *  ChanMux NIC driver config
  *
  *  Copyright (C) 2019, Hensoldt Cyber GmbH
 */
@@ -7,17 +7,17 @@
 #include "LibDebug/Debug.h"
 #include "SeosError.h"
 #include "seos_chanmux.h"
-#include "seos_api_chanmux_nic_drv.h"
 #include "chanmux_nic_drv.h"
+#include "chanmux_nic_drv_api.h"
 
-static const seos_camkes_chanmx_nic_drv_config_t* camkes_cfg;
+static const chanmux_nic_drv_config_t* config;
 
 
 //------------------------------------------------------------------------------
 const ChanMux_channelCtx_t*
 get_chanmux_channel_ctrl(void)
 {
-    const ChanMux_channelCtx_t* channel = &(camkes_cfg->chanmux.ctrl);
+    const ChanMux_channelCtx_t* channel = &(config->chanmux.ctrl);
 
     Debug_ASSERT( NULL != channel );
 
@@ -29,7 +29,7 @@ get_chanmux_channel_ctrl(void)
 seos_err_t
 chanmux_channel_ctrl_mutex_lock(void)
 {
-    mutex_lock_func_t lock = camkes_cfg->nic_control_channel_mutex.lock;
+    mutex_lock_func_t lock = config->nic_control_channel_mutex.lock;
     if (!lock)
     {
         Debug_LOG_ERROR("nic_control_channel_mutex.lock not set");
@@ -51,7 +51,7 @@ chanmux_channel_ctrl_mutex_lock(void)
 seos_err_t
 chanmux_channel_ctrl_mutex_unlock(void)
 {
-    mutex_unlock_func_t unlock = camkes_cfg->nic_control_channel_mutex.unlock;
+    mutex_unlock_func_t unlock = config->nic_control_channel_mutex.unlock;
     if (!unlock)
     {
         Debug_LOG_ERROR("nic_control_channel_mutex.unlock not set");
@@ -73,7 +73,7 @@ chanmux_channel_ctrl_mutex_unlock(void)
 const ChanMux_channelDuplexCtx_t*
 get_chanmux_channel_data(void)
 {
-    const ChanMux_channelDuplexCtx_t* channel = &(camkes_cfg->chanmux.data);
+    const ChanMux_channelDuplexCtx_t* channel = &(config->chanmux.data);
 
     Debug_ASSERT( NULL != channel );
 
@@ -85,7 +85,7 @@ get_chanmux_channel_data(void)
 void
 chanmux_wait(void)
 {
-    event_wait_func_t wait = camkes_cfg->chanmux.wait;
+    event_wait_func_t wait = config->chanmux.wait;
     if (!wait)
     {
         Debug_LOG_ERROR("chanmux.wait() not set");
@@ -100,7 +100,7 @@ chanmux_wait(void)
 const seos_shared_buffer_t*
 get_network_stack_port_to(void)
 {
-    const seos_shared_buffer_t* port = &(camkes_cfg->network_stack.to);
+    const seos_shared_buffer_t* port = &(config->network_stack.to);
 
     Debug_ASSERT( NULL != port );
     Debug_ASSERT( NULL != port->buffer );
@@ -115,7 +115,7 @@ const seos_shared_buffer_t*
 get_network_stack_port_from(void)
 {
     // network stack -> driver (aka output)
-    const seos_shared_buffer_t* port = &(camkes_cfg->network_stack.from);
+    const seos_shared_buffer_t* port = &(config->network_stack.from);
 
     Debug_ASSERT( NULL != port );
     Debug_ASSERT( NULL != port->buffer );
@@ -129,8 +129,8 @@ get_network_stack_port_from(void)
 void
 network_stack_notify(void)
 {
-    event_notify_func_t notify = camkes_cfg->network_stack.notify;
-    if (!camkes_cfg->chanmux.wait)
+    event_notify_func_t notify = config->network_stack.notify;
+    if (!config->chanmux.wait)
     {
         Debug_LOG_ERROR("network_stack.notify() not set");
         return;
@@ -142,13 +142,13 @@ network_stack_notify(void)
 
 //------------------------------------------------------------------------------
 seos_err_t
-seos_chanmux_nic_driver_run(
-    const seos_camkes_chanmx_nic_drv_config_t*  camkes_config)
+chanmux_nic_driver_run(
+    const chanmux_nic_drv_config_t*  driver_config)
 {
     seos_err_t err;
 
     // save configuration
-    camkes_cfg = camkes_config;
+    config = driver_config;
 
     // initialize driver
     err = chanmux_nic_driver_init();
@@ -159,7 +159,7 @@ seos_chanmux_nic_driver_run(
     }
 
     Debug_LOG_INFO("send driver init complete notification");
-    camkes_cfg->notify_init_complete();
+    config->notify_init_complete();
 
     Debug_LOG_INFO("start network driver loop");
     // this loop is not supposed to terminate

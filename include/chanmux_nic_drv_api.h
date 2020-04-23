@@ -39,7 +39,7 @@ typedef struct
         mutex_unlock_func_t  unlock;
     } nic_control_channel_mutex;
 
-} seos_camkes_chanmx_nic_drv_config_t;
+} chanmux_nic_drv_config_t;
 
 
 /**
@@ -51,14 +51,14 @@ typedef struct
  *         is not supposed to return. It may terminate gracefully
  */
 seos_err_t
-seos_chanmux_nic_driver_run(
-    const seos_camkes_chanmx_nic_drv_config_t*  camkes_);
+chanmux_nic_driver_run(
+    const chanmux_nic_drv_config_t*  driver_config);
 
 
 seos_err_t
-seos_chanmux_nic_driver_rpc_tx_data(
+chanmux_nic_driver_rpc_tx_data(
     size_t* pLen);
 
 seos_err_t
-seos_chanmux_nic_driver_rpc_get_mac(void);
+chanmux_nic_driver_rpc_get_mac(void);
 
