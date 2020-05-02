@@ -6,7 +6,7 @@
 #pragma once
 
 #include "SeosError.h"
-#include "seos_chanmux.h"
+#include "ChanMux/ChanMuxCommon.h"
 #include <stddef.h>
 #include <stdint.h>
 

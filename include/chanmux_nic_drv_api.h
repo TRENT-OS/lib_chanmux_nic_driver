@@ -8,7 +8,7 @@
 
 #include "SeosError.h"
 #include "seos_types.h"
-#include "seos_chanmux.h"
+#include "ChanMux/ChanMuxCommon.h"
 #include <stdint.h>
 #include <stddef.h>
 
@@ -24,9 +24,9 @@ typedef struct
 
     struct
     {
-        seos_shared_buffer_t  to;   // NIC -> stack
-        seos_shared_buffer_t  from; // stack -> NIC
-        event_notify_func_t   notify; // one ore more frames are available
+        ChanMux_dataport_t   to;   // NIC -> stack
+        ChanMux_dataport_t   from; // stack -> NIC
+        event_notify_func_t  notify; // one ore more frames are available
     } network_stack;
 
     struct

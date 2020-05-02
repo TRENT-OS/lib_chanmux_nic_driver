@@ -9,7 +9,7 @@
 
 #include "LibDebug/Debug.h"
 #include "SeosError.h"
-#include "ChanMux/ChanMuxRpc.h"
+#include "ChanMux/ChanMuxCommon.h"
 #include "os_util/seos_ethernet.h"
 #include "seos_chanmux_nic.h"
 #include "chanmux_nic_drv.h"
@@ -36,11 +36,11 @@ chanmux_ctrl_write(
     }
 
     // copy data into the ctrl dataport
-    memcpy(ctrl_channel->port.buffer, buf, len);
+    memcpy( *(ctrl_channel->port.io), buf, len);
 
     // tell the other side how much data we want to send and in which channel
     size_t sent_len = 0;
-    seos_err_t ret = ChanMuxRpc_write(ctrl_channel->id, len, &sent_len);
+    seos_err_t ret = ctrl_channel->func.write(ctrl_channel->id, len, &sent_len);
     if (ret != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("ChanMuxRpc_write() failed, error %d", ret);
@@ -85,7 +85,10 @@ chanmux_ctrl_readBlocking(
         // the response is not recevied in one chunk. That is bad actually if
         // we ever really have chunked data - so far this luckily never
         // happens ...
-        seos_err_t err = ChanMuxRpc_read(ctrl_channel->id, lenRemaining, &chunk_read);
+        seos_err_t err = ctrl_channel->func.read(
+                             ctrl_channel->id,
+                             lenRemaining,
+                             &chunk_read);
         if (err != SEOS_SUCCESS)
         {
             Debug_LOG_ERROR("ChanMux_read() failed, error %d", err);
@@ -96,7 +99,7 @@ chanmux_ctrl_readBlocking(
 
         if (chunk_read > 0)
         {
-            memcpy(buffer, ctrl_channel->port.buffer, chunk_read);
+            memcpy(buffer, *(ctrl_channel->port.io), chunk_read);
 
             buffer = &buffer[chunk_read];
             lenRemaining -= chunk_read;

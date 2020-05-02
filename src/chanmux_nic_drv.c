@@ -6,12 +6,11 @@
  */
 
 #include "LibDebug/Debug.h"
-#include "ChanMux/ChanMuxRpc.h"
 #include "SeosError.h"
 #include "seos_types.h"
-#include "seos_chanmux.h"
 #include "os_util/seos_ethernet.h"
 #include "os_util/seos_network_stack.h"
+#include "ChanMux/ChanMuxCommon.h"
 #include "chanmux_nic_drv.h"
 #include <sel4/sel4.h> // needed for seL4_yield()
 #include <string.h>
@@ -103,7 +102,7 @@ chanmux_nic_driver_loop(void)
                 // drain the channel FIFO
                 do
                 {
-                    err = ChanMuxRpc_read(data->id, sizeof(buffer), &buffer_len);
+                    err = data->func.read(data->id, sizeof(buffer), &buffer_len);
                     if (err == SEOS_ERROR_OVERFLOW_DETECTED)
                     {
                         continue;
@@ -133,9 +132,10 @@ chanmux_nic_driver_loop(void)
             // read as much data as possible from the ChanMUX channel FIFO into
             // the shared memory data port. We do this even in the state
             // RECEIVE_ERROR, because we have to drain the FIFOs.
-            seos_err_t err = ChanMuxRpc_read(data->id,
-                                             sizeof(buffer),
-                                             &buffer_len);
+            seos_err_t err = data->func.read(
+                                 data->id,
+                                 sizeof(buffer),
+                                 &buffer_len);
             if (err != SEOS_SUCCESS)
             {
                 Debug_LOG_ERROR("ChanMuxRpc_read() %s, error %d, state=%d",
@@ -153,7 +153,7 @@ chanmux_nic_driver_loop(void)
             // here exactly because the state machine has run out of data.
             if ((RECEIVE_ERROR != state) && (0 != buffer_len))
             {
-                memcpy(buffer, data->port_read.buffer, buffer_len);
+                memcpy(buffer, *(data->port.read.io), buffer_len);
                 buffer_offset = 0;
                 doRead = false; // ensure we leave the loop
             }
@@ -405,8 +405,9 @@ chanmux_nic_driver_rpc_tx_data(
     }
 
     const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
-    uint8_t* port_buffer = data->port_write.buffer;
-    size_t port_len = data->port_write.len;
+    const ChanMux_dataport_t* dp_write = &(data->port.write);
+    uint8_t* port_buffer = (uint8_t*)( *(dp_write->io) );
+    size_t port_len = dp_write->len;
     size_t port_offset = 0;
 
     const seos_shared_buffer_t* nw_output = get_network_stack_port_from();
@@ -439,7 +440,10 @@ chanmux_nic_driver_rpc_tx_data(
         // the frame length prefix.
         size_t len_to_write = port_offset + len_chunk;
         size_t len_written = 0;
-        seos_err_t err = ChanMuxRpc_write(data->id, len_to_write, &len_written);
+        seos_err_t err = data->func.write(
+                             data->id,
+                             len_to_write,
+                             &len_written);
         if (err != SEOS_SUCCESS)
         {
             Debug_LOG_ERROR("ChanMuxRpc_write() failed, error %d", err);
@@ -462,7 +466,7 @@ chanmux_nic_driver_rpc_tx_data(
 
         // full port buffer is available again
         port_offset = 0;
-        port_len = data->port_write.len;
+        port_len = dp_write->len;
     }
 
     *pLen = len;

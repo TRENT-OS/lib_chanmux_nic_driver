@@ -6,7 +6,7 @@
 
 #include "LibDebug/Debug.h"
 #include "SeosError.h"
-#include "seos_chanmux.h"
+#include "ChanMux/ChanMuxCommon.h"
 #include "chanmux_nic_drv_api.h"
 #include "chanmux_nic_drv.h"
 #include "chanmux_nic_drv_api.h"
@@ -102,13 +102,19 @@ chanmux_wait(void)
 const seos_shared_buffer_t*
 get_network_stack_port_to(void)
 {
-    const seos_shared_buffer_t* port = &(config->network_stack.to);
+    const ChanMux_dataport_t* port = &(config->network_stack.to);
 
-    Debug_ASSERT( NULL != port );
-    Debug_ASSERT( NULL != port->buffer );
+    Debug_ASSERT( NULL != port->io );
+    Debug_ASSERT( NULL != *(port->io) );
     Debug_ASSERT( 0 != port->len );
 
-    return port;
+    // TODO: this is a bit hacky, but we try to make things simpler by for the
+    //       caller. And these are constants, so we don't expect any surprises.
+    static seos_shared_buffer_t s;
+    s.buffer = *(port->io);
+    s.len = port->len;
+
+    return &s;
 }
 
 
@@ -117,13 +123,19 @@ const seos_shared_buffer_t*
 get_network_stack_port_from(void)
 {
     // network stack -> driver (aka output)
-    const seos_shared_buffer_t* port = &(config->network_stack.from);
+    const ChanMux_dataport_t* port = &(config->network_stack.from);
 
-    Debug_ASSERT( NULL != port );
-    Debug_ASSERT( NULL != port->buffer );
+    Debug_ASSERT( NULL != port->io );
+    Debug_ASSERT( NULL != *(port->io) );
     Debug_ASSERT( 0 != port->len );
 
-    return port;
+    // TODO: this is a bit hacky, but we try to make things simpler by for the
+    //       caller. And these are constants, so we don't expect any surprises.
+    static seos_shared_buffer_t s;
+    s.buffer = *(port->io);
+    s.len = port->len;
+
+    return &s;
 }
 
 
