@@ -35,7 +35,7 @@ chanmux_ctrl_write(
         return SEOS_ERROR_GENERIC;
     }
 
-    // copy in the ctrl dataport
+    // copy data into the ctrl dataport
     memcpy(ctrl_channel->port.buffer, buf, len);
 
     // tell the other side how much data we want to send and in which channel
