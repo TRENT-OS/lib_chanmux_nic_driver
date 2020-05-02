@@ -8,6 +8,7 @@
 #include "LibDebug/Debug.h"
 #include "ChanMux/ChanMuxRpc.h"
 #include "SeosError.h"
+#include "seos_types.h"
 #include "seos_chanmux.h"
 #include "os_util/seos_ethernet.h"
 #include "os_util/seos_network_stack.h"
