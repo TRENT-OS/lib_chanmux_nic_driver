@@ -20,10 +20,10 @@ target_sources(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
     INTERFACE
         include
-        ../chanmux/include
 )
 
 target_link_libraries(${PROJECT_NAME}
     INTERFACE
         seos_core_api
+        chanmux_client
 )
