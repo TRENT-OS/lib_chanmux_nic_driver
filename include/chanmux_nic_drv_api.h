@@ -43,8 +43,8 @@ typedef struct
  *
  * @param config configuration for the driver
  *
- * @return SEOS_ERROR_GENERIC initialization failed
- * @return SEOS_SUCCESS initialization successful
+ * @return OS_ERROR_GENERIC initialization failed
+ * @return OS_SUCCESS initialization successful
  */
 OS_Error_t
 chanmux_nic_driver_init(
@@ -54,8 +54,8 @@ chanmux_nic_driver_init(
 /**
  * @brief run the driver main loop
  *
- * @return SEOS_ERROR_GENERIC driver main loop failed
- * @return SEOS_SUCCESS driver main loop terminated gracefully
+ * @return OS_ERROR_GENERIC driver main loop failed
+ * @return OS_SUCCESS driver main loop terminated gracefully
  */
 OS_Error_t
 chanmux_nic_driver_run(void);

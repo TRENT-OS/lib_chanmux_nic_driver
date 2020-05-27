@@ -61,7 +61,7 @@ chanmux_nic_driver_loop(void)
     // The Proxy needs to get a START command in order to
     // forward frames from the TAP interface
     OS_Error_t err = chanmux_nic_ctrl_startData(ctrl, data->id);
-    if (err != SEOS_SUCCESS)
+    if (err != OS_SUCCESS)
     {
         Debug_LOG_ERROR("chanmux_nic_ctrl_startData() failed, code %d", err);
         return err;
@@ -88,7 +88,7 @@ chanmux_nic_driver_loop(void)
                 /// handle more than one client
                 Debug_LOG_WARNING("Chanmux receive error, resetting FIFO");
                 OS_Error_t err = chanmux_nic_ctrl_stopData(ctrl, data->id);
-                if (err != SEOS_SUCCESS)
+                if (err != OS_SUCCESS)
                 {
                     Debug_LOG_ERROR("chanmux_nic_ctrl_stopData() failed, code %d", err);
                     return err;
@@ -103,7 +103,7 @@ chanmux_nic_driver_loop(void)
                 do
                 {
                     err = data->func.read(data->id, sizeof(buffer), &buffer_len);
-                    if (err == SEOS_ERROR_OVERFLOW_DETECTED)
+                    if (err == OS_ERROR_OVERFLOW_DETECTED)
                     {
                         continue;
                     }
@@ -113,7 +113,7 @@ chanmux_nic_driver_loop(void)
                 state = RECEIVE_FRAME_START;
 
                 err = chanmux_nic_ctrl_startData(ctrl, data->id);
-                if (err != SEOS_SUCCESS)
+                if (err != OS_SUCCESS)
                 {
                     Debug_LOG_ERROR("chanmux_nic_ctrl_startData() failed, code %d", err);
                     return err;
@@ -136,10 +136,10 @@ chanmux_nic_driver_loop(void)
                                  data->id,
                                  sizeof(buffer),
                                  &buffer_len);
-            if (err != SEOS_SUCCESS)
+            if (err != OS_SUCCESS)
             {
                 Debug_LOG_ERROR("ChanMuxRpc_read() %s, error %d, state=%d",
-                                (SEOS_ERROR_OVERFLOW_DETECTED == err) ? "reported OVERFLOW" : "failed",
+                                (OS_ERROR_OVERFLOW_DETECTED == err) ? "reported OVERFLOW" : "failed",
                                 err, state);
                 state = RECEIVE_ERROR;
             }
@@ -401,7 +401,7 @@ chanmux_nic_driver_rpc_tx_data(
     {
         Debug_LOG_WARNING("can't send frame, len %zu exceeds max supported length %d",
                           len, 0xFFFF);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
     const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
@@ -444,10 +444,10 @@ chanmux_nic_driver_rpc_tx_data(
                              data->id,
                              len_to_write,
                              &len_written);
-        if (err != SEOS_SUCCESS)
+        if (err != OS_SUCCESS)
         {
             Debug_LOG_ERROR("ChanMuxRpc_write() failed, error %d", err);
-            return SEOS_ERROR_GENERIC;
+            return OS_ERROR_GENERIC;
         }
 
         Debug_ASSERT(len_written <= len_to_write);
@@ -455,7 +455,7 @@ chanmux_nic_driver_rpc_tx_data(
         {
             Debug_LOG_WARNING("ChanMuxRpc_write() wrote only %zu of %zu bytes",
                               len_written, len_to_write);
-            return SEOS_ERROR_GENERIC;
+            return OS_ERROR_GENERIC;
         }
 
         // len_written may include the frame length header, but remain_len does
@@ -470,7 +470,7 @@ chanmux_nic_driver_rpc_tx_data(
     }
 
     *pLen = len;
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }
 
 
@@ -485,10 +485,10 @@ chanmux_nic_driver_rpc_get_mac(void)
     // ChanMUX simulates an ethernet device, get the MAC address from it
     uint8_t mac[MAC_SIZE] = {0};
     OS_Error_t err = chanmux_nic_ctrl_get_mac(ctrl, data->id, mac);
-    if (err != SEOS_SUCCESS)
+    if (err != OS_SUCCESS)
     {
         Debug_LOG_ERROR("chanmux_nic_ctrl_get_mac() failed, error %d", err);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
     // sanity check, the MAC address can't be all zero.
@@ -496,7 +496,7 @@ chanmux_nic_driver_rpc_get_mac(void)
     if (memcmp(mac, empty_mac, MAC_SIZE) == 0)
     {
         Debug_LOG_ERROR("MAC with all zeros is not allowed");
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
     Debug_LOG_INFO("MAC is %02x:%02x:%02x:%02x:%02x:%02x",
@@ -515,5 +515,5 @@ chanmux_nic_driver_rpc_get_mac(void)
     Rx_Buffer* nw_rx = (Rx_Buffer*)nw_input->buffer;
     memcpy(nw_rx->data, mac, MAC_SIZE);
 
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }

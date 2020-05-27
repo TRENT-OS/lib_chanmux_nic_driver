@@ -34,7 +34,7 @@ OS_Error_t chanmux_nic_driver_loop(void);
  * @param channel_ctrl control channel
  * @param chan_id_data data channel
  *
- * @retval SEOS_SUCCESS or error code
+ * @retval OS_SUCCESS or error code
  *
  */
 OS_Error_t
@@ -51,7 +51,7 @@ chanmux_nic_channel_open(
  * @param chan_id_data data channel
  * @param mac recevied the MAC
  *
- * @retval SEOS_SUCCESS or error code
+ * @retval OS_SUCCESS or error code
  *
  */
 OS_Error_t

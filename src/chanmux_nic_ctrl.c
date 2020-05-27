@@ -32,7 +32,7 @@ chanmux_ctrl_write(
     {
         Debug_LOG_ERROR("len (%zu) exceeds buffer size (%d)", len,
                         ctrl_channel->port.len);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
     // copy data into the ctrl dataport
@@ -41,19 +41,19 @@ chanmux_ctrl_write(
     // tell the other side how much data we want to send and in which channel
     size_t sent_len = 0;
     OS_Error_t ret = ctrl_channel->func.write(ctrl_channel->id, len, &sent_len);
-    if (ret != SEOS_SUCCESS)
+    if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("ChanMuxRpc_write() failed, error %d", ret);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
     if (sent_len != len)
     {
         Debug_LOG_ERROR("ChanMuxRpc_write() sent len invalid: %zu", sent_len);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }
 
 
@@ -70,7 +70,7 @@ chanmux_ctrl_readBlocking(
     {
         Debug_LOG_ERROR("len (%zu) exceeds buffer size (%d)", len,
                         ctrl_channel->port.len);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
     uint8_t* buffer = (uint8_t*)buf;
@@ -89,10 +89,10 @@ chanmux_ctrl_readBlocking(
                              ctrl_channel->id,
                              lenRemaining,
                              &chunk_read);
-        if (err != SEOS_SUCCESS)
+        if (err != OS_SUCCESS)
         {
             Debug_LOG_ERROR("ChanMux_read() failed, error %d", err);
-            return SEOS_ERROR_GENERIC;
+            return OS_ERROR_GENERIC;
         }
 
         assert(chunk_read <= lenRemaining);
@@ -105,7 +105,7 @@ chanmux_ctrl_readBlocking(
             lenRemaining -= chunk_read;
         }
     }
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }
 
 
@@ -121,20 +121,20 @@ chanmux_nic_channel_ctrl_request_reply(
     OS_Error_t ret;
 
     ret = chanmux_ctrl_write(channel_ctrl, cmd, cmd_len);
-    if (ret != SEOS_SUCCESS)
+    if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Writing command for %d returned error %d", cmd[0], ret);
         return ret;
     }
 
     ret = chanmux_ctrl_readBlocking(channel_ctrl, rsp, rsp_len);
-    if (ret != SEOS_SUCCESS)
+    if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Reading response for %d returned error %d", cmd[0], ret);
         return ret;
     }
 
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }
 
 
@@ -150,10 +150,10 @@ chanmux_nic_channel_ctrl_cmd(
     OS_Error_t ret_mux;
 
     ret_mux = chanmux_channel_ctrl_mutex_lock();
-    if (ret_mux != SEOS_SUCCESS)
+    if (ret_mux != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Failure getting lock, returned %d", ret_mux);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
     OS_Error_t ret = chanmux_nic_channel_ctrl_request_reply(
@@ -165,7 +165,7 @@ chanmux_nic_channel_ctrl_cmd(
 
     // we have to release the mutex even if the command failed
     ret_mux = chanmux_channel_ctrl_mutex_unlock();
-    if (ret_mux != SEOS_SUCCESS)
+    if (ret_mux != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Failure releasing lock, returned %d", ret_mux);
     }
@@ -190,19 +190,19 @@ chanmux_nic_channel_open(
               sizeof(cmd),
               rsp,
               sizeof(rsp));
-    if (ret != SEOS_SUCCESS)
+    if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Sending OPEN returned error %d", ret);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
     uint8_t rsp_result = rsp[0];
     if (rsp_result != CHANMUX_NIC_RSP_OPEN)
     {
         Debug_LOG_ERROR("command OPEN failed, status code %u", rsp_result);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }
 
 
@@ -225,27 +225,27 @@ chanmux_nic_ctrl_get_mac(
               sizeof(cmd),
               rsp,
               sizeof(rsp));
-    if (ret != SEOS_SUCCESS)
+    if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Sending GET_MAC returned error %d", ret);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
     uint8_t rsp_result = rsp[0];
     if (rsp_result != CHANMUX_NIC_RSP_GET_MAC)
     {
         Debug_LOG_ERROR("command GETMAC failed, status code %u", rsp_result);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
     uint8_t rsp_ctx = rsp[1];
     if (rsp_ctx != 0)
     {
         Debug_LOG_ERROR("command GETMAC response ctx error, found %u", rsp_ctx);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
     memcpy(mac, &rsp[2], MAC_SIZE);
 
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }
 
 
@@ -264,19 +264,19 @@ chanmux_nic_ctrl_stopData(
               cmd, sizeof(cmd),
               rsp,
               sizeof(rsp));
-    if (ret != SEOS_SUCCESS)
+    if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Sending STOP_READ returned error %d", ret);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
     uint8_t rsp_result = rsp[0];
     if (rsp_result != CHANMUX_NIC_RSP_STOP_READ)
     {
         Debug_LOG_ERROR("command STOP_READ failed, status code %u", rsp_result);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }
 
 
@@ -296,17 +296,17 @@ chanmux_nic_ctrl_startData(
               sizeof(cmd),
               rsp,
               sizeof(rsp));
-    if (ret != SEOS_SUCCESS)
+    if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Sending START_READ returned error %d", ret);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
     uint8_t rsp_result = rsp[0];
     if (rsp_result != CHANMUX_NIC_RSP_START_READ)
     {
         Debug_LOG_ERROR("command START_READ failed, status code %u", rsp_result);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }

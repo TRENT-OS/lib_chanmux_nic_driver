@@ -35,7 +35,7 @@ chanmux_channel_ctrl_mutex_lock(void)
     if (!lock)
     {
         Debug_LOG_ERROR("nic_control_channel_mutex.lock not set");
-        return SEOS_ERROR_ABORTED;
+        return OS_ERROR_ABORTED;
     }
 
     int ret = lock();
@@ -43,9 +43,9 @@ chanmux_channel_ctrl_mutex_lock(void)
     if (ret != 0)
     {
         Debug_LOG_ERROR("Failure getting lock, returned %d", ret);
-        return SEOS_ERROR_ABORTED;
+        return OS_ERROR_ABORTED;
     }
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }
 
 
@@ -57,7 +57,7 @@ chanmux_channel_ctrl_mutex_unlock(void)
     if (!unlock)
     {
         Debug_LOG_ERROR("nic_control_channel_mutex.unlock not set");
-        return SEOS_ERROR_ABORTED;
+        return OS_ERROR_ABORTED;
     }
 
     int ret = unlock();
@@ -65,9 +65,9 @@ chanmux_channel_ctrl_mutex_unlock(void)
     if (ret != 0)
     {
         Debug_LOG_ERROR("Failure releasing lock, returned %d", ret);
-        return SEOS_ERROR_ABORTED;
+        return OS_ERROR_ABORTED;
     }
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }
 
 
@@ -176,15 +176,15 @@ chanmux_nic_driver_init(
     Debug_LOG_INFO("ChanMUX channels: ctrl=%u, data=%u", ctrl->id, data->id);
 
     OS_Error_t err = chanmux_nic_channel_open(ctrl, data->id);
-    if (err != SEOS_SUCCESS)
+    if (err != OS_SUCCESS)
     {
         Debug_LOG_ERROR("chanmux_nic_channel_open() failed, error:%d", err);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
     Debug_LOG_INFO("network driver init successful");
 
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }
 
 
@@ -195,15 +195,15 @@ chanmux_nic_driver_run(void)
     Debug_LOG_INFO("start network driver loop");
     // this loop is not supposed to terminate
     OS_Error_t err = chanmux_nic_driver_loop();
-    if (err != SEOS_SUCCESS)
+    if (err != OS_SUCCESS)
     {
         Debug_LOG_ERROR("chanmux_receive_loop() failed, error %d", err);
-        return SEOS_ERROR_GENERIC;
+        return OS_ERROR_GENERIC;
     }
 
     // actually, the loop is not supposed to return without an error. If it
     // does, we assume this is a graceful termination
     Debug_LOG_INFO("chanmux_receive_loop() terminated gracefully");
 
-    return SEOS_SUCCESS;
+    return OS_SUCCESS;
 }
