@@ -6,8 +6,8 @@
  */
 
 #include "LibDebug/Debug.h"
-#include "SeosError.h"
-#include "seos_types.h"
+#include "OS_Error.h"
+#include "OS_Types.h"
 #include "os_util/seos_ethernet.h"
 #include "os_util/seos_network_stack.h"
 #include "ChanMux/ChanMuxCommon.h"
@@ -19,15 +19,15 @@
 //------------------------------------------------------------------------------
 // Receive loop, waits for an interrupt signal from ChanMUX, reads data and
 // notifies network stack when a frame is available
-seos_err_t
+OS_Error_t
 chanmux_nic_driver_loop(void)
 {
     const ChanMux_channelCtx_t* ctrl = get_chanmux_channel_ctrl();
     const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
 
-    const seos_shared_buffer_t* nw_input = get_network_stack_port_to();
+    const OS_shared_buffer_t* nw_input = get_network_stack_port_to();
     Rx_Buffer* nw_rx = (Rx_Buffer*)nw_input->buffer;
-    const seos_shared_buffer_t nw_in =
+    const OS_shared_buffer_t nw_in =
     {
         .buffer = &(nw_rx->data),
         .len = sizeof(nw_rx->data)
@@ -60,7 +60,7 @@ chanmux_nic_driver_loop(void)
 
     // The Proxy needs to get a START command in order to
     // forward frames from the TAP interface
-    seos_err_t err = chanmux_nic_ctrl_startData(ctrl, data->id);
+    OS_Error_t err = chanmux_nic_ctrl_startData(ctrl, data->id);
     if (err != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("chanmux_nic_ctrl_startData() failed, code %d", err);
@@ -87,7 +87,7 @@ chanmux_nic_driver_loop(void)
                 /// server that should provide us the getTime() facility cannot
                 /// handle more than one client
                 Debug_LOG_WARNING("Chanmux receive error, resetting FIFO");
-                seos_err_t err = chanmux_nic_ctrl_stopData(ctrl, data->id);
+                OS_Error_t err = chanmux_nic_ctrl_stopData(ctrl, data->id);
                 if (err != SEOS_SUCCESS)
                 {
                     Debug_LOG_ERROR("chanmux_nic_ctrl_stopData() failed, code %d", err);
@@ -132,7 +132,7 @@ chanmux_nic_driver_loop(void)
             // read as much data as possible from the ChanMUX channel FIFO into
             // the shared memory data port. We do this even in the state
             // RECEIVE_ERROR, because we have to drain the FIFOs.
-            seos_err_t err = data->func.read(
+            OS_Error_t err = data->func.read(
                                  data->id,
                                  sizeof(buffer),
                                  &buffer_len);
@@ -381,7 +381,7 @@ chanmux_nic_driver_loop(void)
 
 //------------------------------------------------------------------------------
 // called by network stack to send an ethernet frame
-seos_err_t
+OS_Error_t
 chanmux_nic_driver_rpc_tx_data(
     size_t* pLen)
 {
@@ -410,7 +410,7 @@ chanmux_nic_driver_rpc_tx_data(
     size_t port_len = dp_write->len;
     size_t port_offset = 0;
 
-    const seos_shared_buffer_t* nw_output = get_network_stack_port_from();
+    const OS_shared_buffer_t* nw_output = get_network_stack_port_from();
     uint8_t* buffer_nw_out = (uint8_t*)nw_output->buffer;
     size_t offset_nw_out = 0;
 
@@ -440,7 +440,7 @@ chanmux_nic_driver_rpc_tx_data(
         // the frame length prefix.
         size_t len_to_write = port_offset + len_chunk;
         size_t len_written = 0;
-        seos_err_t err = data->func.write(
+        OS_Error_t err = data->func.write(
                              data->id,
                              len_to_write,
                              &len_written);
@@ -476,7 +476,7 @@ chanmux_nic_driver_rpc_tx_data(
 
 //------------------------------------------------------------------------------
 // called by network stack to get the MAC
-seos_err_t
+OS_Error_t
 chanmux_nic_driver_rpc_get_mac(void)
 {
     const ChanMux_channelCtx_t* ctrl = get_chanmux_channel_ctrl();
@@ -484,7 +484,7 @@ chanmux_nic_driver_rpc_get_mac(void)
 
     // ChanMUX simulates an ethernet device, get the MAC address from it
     uint8_t mac[MAC_SIZE] = {0};
-    seos_err_t err = chanmux_nic_ctrl_get_mac(ctrl, data->id, mac);
+    OS_Error_t err = chanmux_nic_ctrl_get_mac(ctrl, data->id, mac);
     if (err != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("chanmux_nic_ctrl_get_mac() failed, error %d", err);
@@ -511,7 +511,7 @@ chanmux_nic_driver_rpc_get_mac(void)
     //       interface card simulation that has a proper MAC.
     mac[MAC_SIZE - 1]++;
 
-    const seos_shared_buffer_t* nw_input = get_network_stack_port_to();
+    const OS_shared_buffer_t* nw_input = get_network_stack_port_to();
     Rx_Buffer* nw_rx = (Rx_Buffer*)nw_input->buffer;
     memcpy(nw_rx->data, mac, MAC_SIZE);
 

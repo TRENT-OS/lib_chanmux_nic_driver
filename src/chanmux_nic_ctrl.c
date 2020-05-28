@@ -8,7 +8,7 @@
 
 
 #include "LibDebug/Debug.h"
-#include "SeosError.h"
+#include "OS_Error.h"
 #include "ChanMux/ChanMuxCommon.h"
 #include "os_util/seos_ethernet.h"
 #include "seos_chanmux_nic.h"
@@ -22,7 +22,7 @@
 //------------------------------------------------------------------------------
 // write command into control channel. There is no point in returning the
 // written bytes as full command must be send or there is an error
-static seos_err_t
+static OS_Error_t
 chanmux_ctrl_write(
     const ChanMux_channelCtx_t*  ctrl_channel,
     const void*                  buf,
@@ -40,7 +40,7 @@ chanmux_ctrl_write(
 
     // tell the other side how much data we want to send and in which channel
     size_t sent_len = 0;
-    seos_err_t ret = ctrl_channel->func.write(ctrl_channel->id, len, &sent_len);
+    OS_Error_t ret = ctrl_channel->func.write(ctrl_channel->id, len, &sent_len);
     if (ret != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("ChanMuxRpc_write() failed, error %d", ret);
@@ -60,7 +60,7 @@ chanmux_ctrl_write(
 //------------------------------------------------------------------------------
 // read response from control channel. There is no point in returning the read
 // length as full responses must be read or there is an error
-static seos_err_t
+static OS_Error_t
 chanmux_ctrl_readBlocking(
     const ChanMux_channelCtx_t*  ctrl_channel,
     void*                        buf,
@@ -85,7 +85,7 @@ chanmux_ctrl_readBlocking(
         // the response is not recevied in one chunk. That is bad actually if
         // we ever really have chunked data - so far this luckily never
         // happens ...
-        seos_err_t err = ctrl_channel->func.read(
+        OS_Error_t err = ctrl_channel->func.read(
                              ctrl_channel->id,
                              lenRemaining,
                              &chunk_read);
@@ -110,7 +110,7 @@ chanmux_ctrl_readBlocking(
 
 
 //------------------------------------------------------------------------------
-static seos_err_t
+static OS_Error_t
 chanmux_nic_channel_ctrl_request_reply(
     const  ChanMux_channelCtx_t*  channel_ctrl,
     uint8_t*                      cmd,
@@ -118,7 +118,7 @@ chanmux_nic_channel_ctrl_request_reply(
     uint8_t*                      rsp,
     size_t                        rsp_len)
 {
-    seos_err_t ret;
+    OS_Error_t ret;
 
     ret = chanmux_ctrl_write(channel_ctrl, cmd, cmd_len);
     if (ret != SEOS_SUCCESS)
@@ -139,7 +139,7 @@ chanmux_nic_channel_ctrl_request_reply(
 
 
 //------------------------------------------------------------------------------
-static seos_err_t
+static OS_Error_t
 chanmux_nic_channel_ctrl_cmd(
     const  ChanMux_channelCtx_t*  channel_ctrl,
     uint8_t*                      cmd,
@@ -147,7 +147,7 @@ chanmux_nic_channel_ctrl_cmd(
     uint8_t*                      rsp,
     size_t                        rsp_len)
 {
-    seos_err_t ret_mux;
+    OS_Error_t ret_mux;
 
     ret_mux = chanmux_channel_ctrl_mutex_lock();
     if (ret_mux != SEOS_SUCCESS)
@@ -156,7 +156,7 @@ chanmux_nic_channel_ctrl_cmd(
         return SEOS_ERROR_GENERIC;
     }
 
-    seos_err_t ret = chanmux_nic_channel_ctrl_request_reply(
+    OS_Error_t ret = chanmux_nic_channel_ctrl_request_reply(
                          channel_ctrl,
                          cmd,
                          cmd_len,
@@ -175,12 +175,12 @@ chanmux_nic_channel_ctrl_cmd(
 
 
 //------------------------------------------------------------------------------
-seos_err_t
+OS_Error_t
 chanmux_nic_channel_open(
     const  ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                  chan_id_data)
 {
-    seos_err_t ret;
+    OS_Error_t ret;
 
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_OPEN, chan_id_data };
     uint8_t rsp[2];
@@ -207,13 +207,13 @@ chanmux_nic_channel_open(
 
 
 //------------------------------------------------------------------------------
-seos_err_t
+OS_Error_t
 chanmux_nic_ctrl_get_mac(
     const ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                 chan_id_data,
     uint8_t*                     mac)
 {
-    seos_err_t ret;
+    OS_Error_t ret;
 
 
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_GET_MAC, chan_id_data };
@@ -250,12 +250,12 @@ chanmux_nic_ctrl_get_mac(
 
 
 //------------------------------------------------------------------------------
-seos_err_t
+OS_Error_t
 chanmux_nic_ctrl_stopData(
     const ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                 chan_id_data)
 {
-    seos_err_t ret;
+    OS_Error_t ret;
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_STOP_READ, chan_id_data };
     // 2 byte response
     uint8_t rsp[2];
@@ -281,12 +281,12 @@ chanmux_nic_ctrl_stopData(
 
 
 //------------------------------------------------------------------------------
-seos_err_t
+OS_Error_t
 chanmux_nic_ctrl_startData(
     const ChanMux_channelCtx_t*  channel_ctrl,
     unsigned int                 chan_id_data)
 {
-    seos_err_t ret;
+    OS_Error_t ret;
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_START_READ, chan_id_data };
     // 2 byte response
     uint8_t rsp[2];

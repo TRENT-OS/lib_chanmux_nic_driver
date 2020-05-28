@@ -5,7 +5,7 @@
 */
 
 #include "LibDebug/Debug.h"
-#include "SeosError.h"
+#include "OS_Error.h"
 #include "ChanMux/ChanMuxCommon.h"
 #include "chanmux_nic_drv_api.h"
 #include "chanmux_nic_drv.h"
@@ -28,7 +28,7 @@ get_chanmux_channel_ctrl(void)
 
 
 //------------------------------------------------------------------------------
-seos_err_t
+OS_Error_t
 chanmux_channel_ctrl_mutex_lock(void)
 {
     mutex_lock_func_t lock = config->nic_control_channel_mutex.lock;
@@ -50,7 +50,7 @@ chanmux_channel_ctrl_mutex_lock(void)
 
 
 //------------------------------------------------------------------------------
-seos_err_t
+OS_Error_t
 chanmux_channel_ctrl_mutex_unlock(void)
 {
     mutex_unlock_func_t unlock = config->nic_control_channel_mutex.unlock;
@@ -99,7 +99,7 @@ chanmux_wait(void)
 
 
 //------------------------------------------------------------------------------
-const seos_shared_buffer_t*
+const OS_shared_buffer_t*
 get_network_stack_port_to(void)
 {
     const ChanMux_dataport_t* port = &(config->network_stack.to);
@@ -110,7 +110,7 @@ get_network_stack_port_to(void)
 
     // TODO: this is a bit hacky, but we try to make things simpler by for the
     //       caller. And these are constants, so we don't expect any surprises.
-    static seos_shared_buffer_t s;
+    static OS_shared_buffer_t s;
     s.buffer = *(port->io);
     s.len = port->len;
 
@@ -119,7 +119,7 @@ get_network_stack_port_to(void)
 
 
 //------------------------------------------------------------------------------
-const seos_shared_buffer_t*
+const OS_shared_buffer_t*
 get_network_stack_port_from(void)
 {
     // network stack -> driver (aka output)
@@ -131,7 +131,7 @@ get_network_stack_port_from(void)
 
     // TODO: this is a bit hacky, but we try to make things simpler by for the
     //       caller. And these are constants, so we don't expect any surprises.
-    static seos_shared_buffer_t s;
+    static OS_shared_buffer_t s;
     s.buffer = *(port->io);
     s.len = port->len;
 
@@ -155,7 +155,7 @@ network_stack_notify(void)
 
 
 //------------------------------------------------------------------------------
-seos_err_t
+OS_Error_t
 chanmux_nic_driver_init(
     const chanmux_nic_drv_config_t*  driver_config)
 {
@@ -165,7 +165,7 @@ chanmux_nic_driver_init(
     config = driver_config;
 
     // initialize the shared memory, there is no data waiting in the buffer
-    const seos_shared_buffer_t* nw_input = get_network_stack_port_to();
+    const OS_shared_buffer_t* nw_input = get_network_stack_port_to();
     Rx_Buffer* nw_rx = (Rx_Buffer*)nw_input->buffer;
     nw_rx->len = 0;
 
@@ -175,7 +175,7 @@ chanmux_nic_driver_init(
 
     Debug_LOG_INFO("ChanMUX channels: ctrl=%u, data=%u", ctrl->id, data->id);
 
-    seos_err_t err = chanmux_nic_channel_open(ctrl, data->id);
+    OS_Error_t err = chanmux_nic_channel_open(ctrl, data->id);
     if (err != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("chanmux_nic_channel_open() failed, error:%d", err);
@@ -189,12 +189,12 @@ chanmux_nic_driver_init(
 
 
 //------------------------------------------------------------------------------
-seos_err_t
+OS_Error_t
 chanmux_nic_driver_run(void)
 {
     Debug_LOG_INFO("start network driver loop");
     // this loop is not supposed to terminate
-    seos_err_t err = chanmux_nic_driver_loop();
+    OS_Error_t err = chanmux_nic_driver_loop();
     if (err != SEOS_SUCCESS)
     {
         Debug_LOG_ERROR("chanmux_receive_loop() failed, error %d", err);

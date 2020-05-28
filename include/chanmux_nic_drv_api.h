@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "SeosError.h"
-#include "seos_types.h"
+#include "OS_Error.h"
+#include "OS_Types.h"
 #include "ChanMux/ChanMuxCommon.h"
 #include <stdint.h>
 #include <stddef.h>
@@ -46,7 +46,7 @@ typedef struct
  * @return SEOS_ERROR_GENERIC initialization failed
  * @return SEOS_SUCCESS initialization successful
  */
-seos_err_t
+OS_Error_t
 chanmux_nic_driver_init(
     const chanmux_nic_drv_config_t*  driver_config);
 
@@ -57,14 +57,14 @@ chanmux_nic_driver_init(
  * @return SEOS_ERROR_GENERIC driver main loop failed
  * @return SEOS_SUCCESS driver main loop terminated gracefully
  */
-seos_err_t
+OS_Error_t
 chanmux_nic_driver_run(void);
 
 
-seos_err_t
+OS_Error_t
 chanmux_nic_driver_rpc_tx_data(
     size_t* pLen);
 
-seos_err_t
+OS_Error_t
 chanmux_nic_driver_rpc_get_mac(void);
 
