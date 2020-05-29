@@ -10,8 +10,8 @@
 #include "LibDebug/Debug.h"
 #include "OS_Error.h"
 #include "ChanMux/ChanMuxCommon.h"
-#include "os_util/seos_ethernet.h"
-#include "seos_chanmux_nic.h"
+#include "os_util/OS_Ethernet.h"
+#include "ChanMuxNic.h"
 #include "chanmux_nic_drv.h"
 #include "chanmux_nic_drv_api.h"
 #include <stdint.h>

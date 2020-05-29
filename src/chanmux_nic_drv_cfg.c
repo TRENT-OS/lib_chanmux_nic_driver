@@ -10,7 +10,7 @@
 #include "chanmux_nic_drv_api.h"
 #include "chanmux_nic_drv.h"
 #include "chanmux_nic_drv_api.h"
-#include "os_util/seos_network_stack.h"
+#include "os_util/OS_NetworkStack.h"
 
 static const chanmux_nic_drv_config_t* config;
 
@@ -99,7 +99,7 @@ chanmux_wait(void)
 
 
 //------------------------------------------------------------------------------
-const OS_shared_buffer_t*
+const OS_SharedBuffer_t*
 get_network_stack_port_to(void)
 {
     const ChanMux_dataport_t* port = &(config->network_stack.to);
@@ -110,7 +110,7 @@ get_network_stack_port_to(void)
 
     // TODO: this is a bit hacky, but we try to make things simpler by for the
     //       caller. And these are constants, so we don't expect any surprises.
-    static OS_shared_buffer_t s;
+    static OS_SharedBuffer_t s;
     s.buffer = *(port->io);
     s.len = port->len;
 
@@ -119,7 +119,7 @@ get_network_stack_port_to(void)
 
 
 //------------------------------------------------------------------------------
-const OS_shared_buffer_t*
+const OS_SharedBuffer_t*
 get_network_stack_port_from(void)
 {
     // network stack -> driver (aka output)
@@ -131,7 +131,7 @@ get_network_stack_port_from(void)
 
     // TODO: this is a bit hacky, but we try to make things simpler by for the
     //       caller. And these are constants, so we don't expect any surprises.
-    static OS_shared_buffer_t s;
+    static OS_SharedBuffer_t s;
     s.buffer = *(port->io);
     s.len = port->len;
 
@@ -165,7 +165,7 @@ chanmux_nic_driver_init(
     config = driver_config;
 
     // initialize the shared memory, there is no data waiting in the buffer
-    const OS_shared_buffer_t* nw_input = get_network_stack_port_to();
+    const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
     Rx_Buffer* nw_rx = (Rx_Buffer*)nw_input->buffer;
     nw_rx->len = 0;
 

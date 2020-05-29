@@ -18,8 +18,8 @@ const ChanMux_channelDuplexCtx_t* get_chanmux_channel_data(void);
 void chanmux_wait(void);
 OS_Error_t chanmux_channel_ctrl_mutex_lock(void);
 OS_Error_t chanmux_channel_ctrl_mutex_unlock(void);
-const OS_shared_buffer_t* get_network_stack_port_to(void);
-const OS_shared_buffer_t* get_network_stack_port_from(void);
+const OS_SharedBuffer_t* get_network_stack_port_to(void);
+const OS_SharedBuffer_t* get_network_stack_port_from(void);
 void network_stack_notify(void);
 
 //------------------------------------------------------------------------------

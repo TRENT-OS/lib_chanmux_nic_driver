@@ -8,8 +8,8 @@
 #include "LibDebug/Debug.h"
 #include "OS_Error.h"
 #include "OS_Types.h"
-#include "os_util/seos_ethernet.h"
-#include "os_util/seos_network_stack.h"
+#include "os_util/OS_Ethernet.h"
+#include "os_util/OS_NetworkStack.h"
 #include "ChanMux/ChanMuxCommon.h"
 #include "chanmux_nic_drv.h"
 #include <sel4/sel4.h> // needed for seL4_yield()
@@ -25,9 +25,9 @@ chanmux_nic_driver_loop(void)
     const ChanMux_channelCtx_t* ctrl = get_chanmux_channel_ctrl();
     const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
 
-    const OS_shared_buffer_t* nw_input = get_network_stack_port_to();
+    const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
     Rx_Buffer* nw_rx = (Rx_Buffer*)nw_input->buffer;
-    const OS_shared_buffer_t nw_in =
+    const OS_SharedBuffer_t nw_in =
     {
         .buffer = &(nw_rx->data),
         .len = sizeof(nw_rx->data)
@@ -410,7 +410,7 @@ chanmux_nic_driver_rpc_tx_data(
     size_t port_len = dp_write->len;
     size_t port_offset = 0;
 
-    const OS_shared_buffer_t* nw_output = get_network_stack_port_from();
+    const OS_SharedBuffer_t* nw_output = get_network_stack_port_from();
     uint8_t* buffer_nw_out = (uint8_t*)nw_output->buffer;
     size_t offset_nw_out = 0;
 
@@ -511,7 +511,7 @@ chanmux_nic_driver_rpc_get_mac(void)
     //       interface card simulation that has a proper MAC.
     mac[MAC_SIZE - 1]++;
 
-    const OS_shared_buffer_t* nw_input = get_network_stack_port_to();
+    const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
     Rx_Buffer* nw_rx = (Rx_Buffer*)nw_input->buffer;
     memcpy(nw_rx->data, mac, MAC_SIZE);
 
