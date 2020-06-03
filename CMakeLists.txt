@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.13.0)
 cmake_policy(SET CMP0076 NEW)
 
 
-project(seos_nw_driver_tap_proxy_lib C)
+project(os_network_driver_tap_proxy C)
 
 add_library(${PROJECT_NAME} INTERFACE)
 
