@@ -7,7 +7,7 @@
 #pragma once
 
 #include "OS_Error.h"
-#include "OS_Types.h"
+#include "OS_Dataport.h"
 #include "ChanMux/ChanMuxCommon.h"
 #include <stdint.h>
 #include <stddef.h>
@@ -24,8 +24,8 @@ typedef struct
 
     struct
     {
-        ChanMux_dataport_t   to;   // NIC -> stack
-        ChanMux_dataport_t   from; // stack -> NIC
+        OS_Dataport_t        to;   // NIC -> stack
+        OS_Dataport_t        from; // stack -> NIC
         event_notify_func_t  notify; // one ore more frames are available
     } network_stack;
 
