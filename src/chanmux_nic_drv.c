@@ -26,7 +26,8 @@ chanmux_nic_driver_loop(void)
     const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
 
     const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
-    Rx_Buffer* nw_rx = (Rx_Buffer*)nw_input->buffer;
+    OS_NetworkStack_RxBuffer_t* nw_rx = (OS_NetworkStack_RxBuffer_t*)
+                                        nw_input->buffer;
     const OS_SharedBuffer_t nw_in =
     {
         .buffer = &(nw_rx->data),
@@ -512,7 +513,8 @@ chanmux_nic_driver_rpc_get_mac(void)
     mac[MAC_SIZE - 1]++;
 
     const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
-    Rx_Buffer* nw_rx = (Rx_Buffer*)nw_input->buffer;
+    OS_NetworkStack_RxBuffer_t* nw_rx = (OS_NetworkStack_RxBuffer_t*)
+                                        nw_input->buffer;
     memcpy(nw_rx->data, mac, MAC_SIZE);
 
     return OS_SUCCESS;

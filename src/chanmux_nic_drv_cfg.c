@@ -166,7 +166,8 @@ chanmux_nic_driver_init(
 
     // initialize the shared memory, there is no data waiting in the buffer
     const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
-    Rx_Buffer* nw_rx = (Rx_Buffer*)nw_input->buffer;
+    OS_NetworkStack_RxBuffer_t* nw_rx = (OS_NetworkStack_RxBuffer_t*)
+                                        nw_input->buffer;
     nw_rx->len = 0;
 
     // initialize the ChanMUX/Proxy connection
