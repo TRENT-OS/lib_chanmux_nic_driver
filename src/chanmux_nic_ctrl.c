@@ -28,15 +28,17 @@ chanmux_ctrl_write(
     const void*                  buf,
     size_t                       len)
 {
-    if (len > ctrl_channel->port.len)
+    size_t port_size;
+
+    port_size = OS_Dataport_getSize(ctrl_channel->port);
+    if (len > port_size)
     {
-        Debug_LOG_ERROR("len (%zu) exceeds buffer size (%d)", len,
-                        ctrl_channel->port.len);
+        Debug_LOG_ERROR("len (%zu) exceeds buffer size (%d)", len, port_size);
         return OS_ERROR_GENERIC;
     }
 
     // copy data into the ctrl dataport
-    memcpy( *(ctrl_channel->port.io), buf, len);
+    memcpy(OS_Dataport_getBuf(ctrl_channel->port), buf, len);
 
     // tell the other side how much data we want to send and in which channel
     size_t sent_len = 0;
@@ -66,10 +68,12 @@ chanmux_ctrl_readBlocking(
     void*                        buf,
     size_t                       len)
 {
-    if (len > ctrl_channel->port.len)
+    size_t port_size;
+
+    port_size = OS_Dataport_getSize(ctrl_channel->port);
+    if (len > port_size)
     {
-        Debug_LOG_ERROR("len (%zu) exceeds buffer size (%d)", len,
-                        ctrl_channel->port.len);
+        Debug_LOG_ERROR("len (%zu) exceeds buffer size (%d)", len, port_size);
         return OS_ERROR_GENERIC;
     }
 
@@ -99,7 +103,7 @@ chanmux_ctrl_readBlocking(
 
         if (chunk_read > 0)
         {
-            memcpy(buffer, *(ctrl_channel->port.io), chunk_read);
+            memcpy(buffer, OS_Dataport_getBuf(ctrl_channel->port), chunk_read);
 
             buffer = &buffer[chunk_read];
             lenRemaining -= chunk_read;

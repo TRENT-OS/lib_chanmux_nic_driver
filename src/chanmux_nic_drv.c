@@ -154,7 +154,7 @@ chanmux_nic_driver_loop(void)
             // here exactly because the state machine has run out of data.
             if ((RECEIVE_ERROR != state) && (0 != buffer_len))
             {
-                memcpy(buffer, *(data->port.read.io), buffer_len);
+                memcpy(buffer, OS_Dataport_getBuf(data->port.read), buffer_len);
                 buffer_offset = 0;
                 doRead = false; // ensure we leave the loop
             }
@@ -406,9 +406,8 @@ chanmux_nic_driver_rpc_tx_data(
     }
 
     const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
-    const ChanMux_dataport_t* dp_write = &(data->port.write);
-    uint8_t* port_buffer = (uint8_t*)( *(dp_write->io) );
-    size_t port_len = dp_write->len;
+    uint8_t* port_buffer = OS_Dataport_getBuf(data->port.write);
+    size_t port_size = OS_Dataport_getSize(data->port.write);
     size_t port_offset = 0;
 
     const OS_SharedBuffer_t* nw_output = get_network_stack_port_from();
@@ -416,18 +415,18 @@ chanmux_nic_driver_rpc_tx_data(
     size_t offset_nw_out = 0;
 
     // send frame length as uint16 in big endian
-    Debug_ASSERT(port_len >= 2);
+    Debug_ASSERT(port_size >= 2);
     port_buffer[port_offset++] = (len >> 8) & 0xFF;
     port_buffer[port_offset++] = len & 0xFF;
-    port_len -= 2;
+    port_size -= 2;
 
     size_t remain_len = len;
     while (remain_len > 0)
     {
         size_t len_chunk = remain_len;
-        if (len_chunk > port_len)
+        if (len_chunk > port_size)
         {
-            len_chunk = port_len;
+            len_chunk = port_size;
             Debug_LOG_WARNING("can only send %zu of %zu bytes",
                               len_chunk, remain_len);
         }
@@ -467,7 +466,7 @@ chanmux_nic_driver_rpc_tx_data(
 
         // full port buffer is available again
         port_offset = 0;
-        port_len = dp_write->len;
+        port_size = OS_Dataport_getSize(data->port.write);
     }
 
     *pLen = len;

@@ -102,17 +102,13 @@ chanmux_wait(void)
 const OS_SharedBuffer_t*
 get_network_stack_port_to(void)
 {
-    const ChanMux_dataport_t* port = &(config->network_stack.to);
-
-    Debug_ASSERT( NULL != port->io );
-    Debug_ASSERT( NULL != *(port->io) );
-    Debug_ASSERT( 0 != port->len );
+    Debug_ASSERT( !OS_Dataport_isUnset(config->network_stack.to) );
 
     // TODO: this is a bit hacky, but we try to make things simpler by for the
     //       caller. And these are constants, so we don't expect any surprises.
     static OS_SharedBuffer_t s;
-    s.buffer = *(port->io);
-    s.len = port->len;
+    s.buffer = OS_Dataport_getBuf(config->network_stack.to);
+    s.len = OS_Dataport_getSize(config->network_stack.to);
 
     return &s;
 }
@@ -123,17 +119,13 @@ const OS_SharedBuffer_t*
 get_network_stack_port_from(void)
 {
     // network stack -> driver (aka output)
-    const ChanMux_dataport_t* port = &(config->network_stack.from);
-
-    Debug_ASSERT( NULL != port->io );
-    Debug_ASSERT( NULL != *(port->io) );
-    Debug_ASSERT( 0 != port->len );
+    Debug_ASSERT( !OS_Dataport_isUnset(config->network_stack.from) );
 
     // TODO: this is a bit hacky, but we try to make things simpler by for the
     //       caller. And these are constants, so we don't expect any surprises.
     static OS_SharedBuffer_t s;
-    s.buffer = *(port->io);
-    s.len = port->len;
+    s.buffer = OS_Dataport_getBuf(config->network_stack.from);
+    s.len = OS_Dataport_getSize(config->network_stack.from);
 
     return &s;
 }
