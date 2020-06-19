@@ -8,8 +8,8 @@
 #include "LibDebug/Debug.h"
 #include "OS_Error.h"
 #include "OS_Types.h"
-#include "os_util/OS_Ethernet.h"
-#include "os_util/OS_NetworkStack.h"
+#include "network/OS_Ethernet.h"
+#include "network/OS_NetworkStack.h"
 #include "ChanMux/ChanMuxCommon.h"
 #include "chanmux_nic_drv.h"
 #include <sel4/sel4.h> // needed for seL4_yield()

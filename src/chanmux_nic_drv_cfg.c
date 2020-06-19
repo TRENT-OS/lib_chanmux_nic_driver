@@ -10,7 +10,7 @@
 #include "chanmux_nic_drv_api.h"
 #include "chanmux_nic_drv.h"
 #include "chanmux_nic_drv_api.h"
-#include "os_util/OS_NetworkStack.h"
+#include "network/OS_NetworkStack.h"
 
 static const chanmux_nic_drv_config_t* config;
 
