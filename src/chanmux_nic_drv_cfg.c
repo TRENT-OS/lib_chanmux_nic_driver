@@ -99,23 +99,19 @@ chanmux_wait(void)
 
 
 //------------------------------------------------------------------------------
-const OS_SharedBuffer_t*
+const OS_Dataport_t*
 get_network_stack_port_to(void)
 {
     Debug_ASSERT( !OS_Dataport_isUnset(config->network_stack.to) );
 
     // TODO: this is a bit hacky, but we try to make things simpler by for the
     //       caller. And these are constants, so we don't expect any surprises.
-    static OS_SharedBuffer_t s;
-    s.buffer = OS_Dataport_getBuf(config->network_stack.to);
-    s.len = OS_Dataport_getSize(config->network_stack.to);
-
-    return &s;
+    return &(config->network_stack.to);
 }
 
 
 //------------------------------------------------------------------------------
-const OS_SharedBuffer_t*
+const OS_Dataport_t*
 get_network_stack_port_from(void)
 {
     // network stack -> driver (aka output)
@@ -123,11 +119,7 @@ get_network_stack_port_from(void)
 
     // TODO: this is a bit hacky, but we try to make things simpler by for the
     //       caller. And these are constants, so we don't expect any surprises.
-    static OS_SharedBuffer_t s;
-    s.buffer = OS_Dataport_getBuf(config->network_stack.from);
-    s.len = OS_Dataport_getSize(config->network_stack.from);
-
-    return &s;
+    return &(config->network_stack.from);
 }
 
 
@@ -157,9 +149,9 @@ chanmux_nic_driver_init(
     config = driver_config;
 
     // initialize the shared memory, there is no data waiting in the buffer
-    const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
+    const OS_Dataport_t* nw_input = get_network_stack_port_to();
     OS_NetworkStack_RxBuffer_t* nw_rx = (OS_NetworkStack_RxBuffer_t*)
-                                        nw_input->buffer;
+                                        OS_Dataport_getBuf(nw_input);
     nw_rx->len = 0;
 
     // initialize the ChanMUX/Proxy connection
