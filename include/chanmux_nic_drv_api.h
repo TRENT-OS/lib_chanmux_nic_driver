@@ -17,9 +17,8 @@ typedef struct
 {
     struct
     {
-        ChanMux_channelCtx_t        ctrl;
-        ChanMux_channelDuplexCtx_t  data;
-        event_notify_func_t         wait; // wait for incoming data
+        ChanMux_ChannelOpsCtx_t  ctrl;
+        ChanMux_ChannelOpsCtx_t  data;
     } chanmux;
 
     struct

@@ -16,10 +16,10 @@ static const chanmux_nic_drv_config_t* config;
 
 
 //------------------------------------------------------------------------------
-const ChanMux_channelCtx_t*
+const ChanMux_ChannelOpsCtx_t*
 get_chanmux_channel_ctrl(void)
 {
-    const ChanMux_channelCtx_t* channel = &(config->chanmux.ctrl);
+    const ChanMux_ChannelOpsCtx_t* channel = &(config->chanmux.ctrl);
 
     Debug_ASSERT( NULL != channel );
 
@@ -72,10 +72,10 @@ chanmux_channel_ctrl_mutex_unlock(void)
 
 
 //------------------------------------------------------------------------------
-const ChanMux_channelDuplexCtx_t*
+const ChanMux_ChannelOpsCtx_t*
 get_chanmux_channel_data(void)
 {
-    const ChanMux_channelDuplexCtx_t* channel = &(config->chanmux.data);
+    const ChanMux_ChannelOpsCtx_t* channel = &(config->chanmux.data);
 
     Debug_ASSERT( NULL != channel );
 
@@ -85,18 +85,31 @@ get_chanmux_channel_data(void)
 
 //------------------------------------------------------------------------------
 void
-chanmux_wait(void)
+chanmux_channel_data_wait(void)
 {
-    event_wait_func_t wait = config->chanmux.wait;
+    event_wait_func_t wait = config->chanmux.data.wait;
     if (!wait)
     {
-        Debug_LOG_ERROR("chanmux.wait() not set");
+        Debug_LOG_ERROR("chanmux.data.wait() not set");
         return;
     }
 
     wait();
 }
 
+//------------------------------------------------------------------------------
+void
+chanmux_channel_ctrl_wait(void)
+{
+    event_wait_func_t wait = config->chanmux.ctrl.wait;
+    if (!wait)
+    {
+        Debug_LOG_ERROR("chanmux.ctrl.wait() not set");
+        return;
+    }
+
+    wait();
+}
 
 //------------------------------------------------------------------------------
 const OS_SharedBuffer_t*
@@ -163,8 +176,8 @@ chanmux_nic_driver_init(
     nw_rx->len = 0;
 
     // initialize the ChanMUX/Proxy connection
-    const ChanMux_channelCtx_t* ctrl = get_chanmux_channel_ctrl();
-    const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
+    const ChanMux_ChannelOpsCtx_t* ctrl = get_chanmux_channel_ctrl();
+    const ChanMux_ChannelOpsCtx_t* data = get_chanmux_channel_data();
 
     Debug_LOG_INFO("ChanMUX channels: ctrl=%u, data=%u", ctrl->id, data->id);
 

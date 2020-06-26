@@ -22,8 +22,8 @@
 OS_Error_t
 chanmux_nic_driver_loop(void)
 {
-    const ChanMux_channelCtx_t* ctrl = get_chanmux_channel_ctrl();
-    const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
+    const ChanMux_ChannelOpsCtx_t* ctrl = get_chanmux_channel_ctrl();
+    const ChanMux_ChannelOpsCtx_t* data = get_chanmux_channel_data();
 
     const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
     OS_NetworkStack_RxBuffer_t* nw_rx = (OS_NetworkStack_RxBuffer_t*)
@@ -128,7 +128,7 @@ chanmux_nic_driver_loop(void)
 
             // ToDo: actually, we want a single atomic blocking read RPC call
             //       here and not the two calls of wait() and read().
-            chanmux_wait();
+            chanmux_channel_data_wait();
 
             // read as much data as possible from the ChanMUX channel FIFO into
             // the shared memory data port. We do this even in the state
@@ -405,7 +405,7 @@ chanmux_nic_driver_rpc_tx_data(
         return OS_ERROR_GENERIC;
     }
 
-    const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
+    const ChanMux_ChannelOpsCtx_t* data = get_chanmux_channel_data();
     uint8_t* port_buffer = OS_Dataport_getBuf(data->port.write);
     size_t port_size = OS_Dataport_getSize(data->port.write);
     size_t port_offset = 0;
@@ -479,8 +479,8 @@ chanmux_nic_driver_rpc_tx_data(
 OS_Error_t
 chanmux_nic_driver_rpc_get_mac(void)
 {
-    const ChanMux_channelCtx_t* ctrl = get_chanmux_channel_ctrl();
-    const ChanMux_channelDuplexCtx_t* data = get_chanmux_channel_data();
+    const ChanMux_ChannelOpsCtx_t* ctrl = get_chanmux_channel_ctrl();
+    const ChanMux_ChannelOpsCtx_t* data = get_chanmux_channel_data();
 
     // ChanMUX simulates an ethernet device, get the MAC address from it
     uint8_t mac[MAC_SIZE] = {0};

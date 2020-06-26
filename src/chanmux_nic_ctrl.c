@@ -24,13 +24,13 @@
 // written bytes as full command must be send or there is an error
 static OS_Error_t
 chanmux_ctrl_write(
-    const ChanMux_channelCtx_t*  ctrl_channel,
-    const void*                  buf,
-    size_t                       len)
+    const ChanMux_ChannelOpsCtx_t*   ctrl_channel,
+    const void*                     buf,
+    size_t                          len)
 {
     size_t port_size;
 
-    port_size = OS_Dataport_getSize(ctrl_channel->port);
+    port_size = OS_Dataport_getSize(ctrl_channel->port.write);
     if (len > port_size)
     {
         Debug_LOG_ERROR("len (%zu) exceeds buffer size (%d)", len, port_size);
@@ -38,7 +38,7 @@ chanmux_ctrl_write(
     }
 
     // copy data into the ctrl dataport
-    memcpy(OS_Dataport_getBuf(ctrl_channel->port), buf, len);
+    memcpy(OS_Dataport_getBuf(ctrl_channel->port.write), buf, len);
 
     // tell the other side how much data we want to send and in which channel
     size_t sent_len = 0;
@@ -64,13 +64,13 @@ chanmux_ctrl_write(
 // length as full responses must be read or there is an error
 static OS_Error_t
 chanmux_ctrl_readBlocking(
-    const ChanMux_channelCtx_t*  ctrl_channel,
-    void*                        buf,
-    size_t                       len)
+    const ChanMux_ChannelOpsCtx_t*   ctrl_channel,
+    void*                           buf,
+    size_t                          len)
 {
     size_t port_size;
 
-    port_size = OS_Dataport_getSize(ctrl_channel->port);
+    port_size = OS_Dataport_getSize(ctrl_channel->port.read);
     if (len > port_size)
     {
         Debug_LOG_ERROR("len (%zu) exceeds buffer size (%d)", len, port_size);
@@ -83,31 +83,37 @@ chanmux_ctrl_readBlocking(
     // we are a graceful receiver and allow a response in multiple chunks.
     while (lenRemaining > 0)
     {
+        chanmux_channel_ctrl_wait();
+
         size_t chunk_read = 0;
-
-        // this is a non-blocking read, so we are effectively polling here if
-        // the response is not recevied in one chunk. That is bad actually if
-        // we ever really have chunked data - so far this luckily never
-        // happens ...
-        OS_Error_t err = ctrl_channel->func.read(
-                             ctrl_channel->id,
-                             lenRemaining,
-                             &chunk_read);
-        if (err != OS_SUCCESS)
+        do
         {
-            Debug_LOG_ERROR("ChanMux_read() failed, error %d", err);
-            return OS_ERROR_GENERIC;
+            // this is a non-blocking read, so we are effectively polling here if
+            // the response is not recevied in one chunk. That is bad actually if
+            // we ever really have chunked data - so far this luckily never
+            // happens ...
+            OS_Error_t err = ctrl_channel->func.read(
+                                 ctrl_channel->id,
+                                 lenRemaining,
+                                 &chunk_read);
+            if (err != OS_SUCCESS)
+            {
+                Debug_LOG_ERROR("ChanMux_read() failed, error %d", err);
+                return OS_ERROR_GENERIC;
+            }
+
+            assert(chunk_read <= lenRemaining);
+
+            if (chunk_read > 0)
+            {
+                memcpy(buffer, OS_Dataport_getBuf(ctrl_channel->port.read),
+                       chunk_read);
+
+                buffer = &buffer[chunk_read];
+                lenRemaining -= chunk_read;
+            }
         }
-
-        assert(chunk_read <= lenRemaining);
-
-        if (chunk_read > 0)
-        {
-            memcpy(buffer, OS_Dataport_getBuf(ctrl_channel->port), chunk_read);
-
-            buffer = &buffer[chunk_read];
-            lenRemaining -= chunk_read;
-        }
+        while (chunk_read > 0);
     }
     return OS_SUCCESS;
 }
@@ -116,11 +122,11 @@ chanmux_ctrl_readBlocking(
 //------------------------------------------------------------------------------
 static OS_Error_t
 chanmux_nic_channel_ctrl_request_reply(
-    const  ChanMux_channelCtx_t*  channel_ctrl,
-    uint8_t*                      cmd,
-    size_t                        cmd_len,
-    uint8_t*                      rsp,
-    size_t                        rsp_len)
+    const  ChanMux_ChannelOpsCtx_t*  channel_ctrl,
+    uint8_t*                        cmd,
+    size_t                          cmd_len,
+    uint8_t*                        rsp,
+    size_t                          rsp_len)
 {
     OS_Error_t ret;
 
@@ -145,11 +151,11 @@ chanmux_nic_channel_ctrl_request_reply(
 //------------------------------------------------------------------------------
 static OS_Error_t
 chanmux_nic_channel_ctrl_cmd(
-    const  ChanMux_channelCtx_t*  channel_ctrl,
-    uint8_t*                      cmd,
-    size_t                        cmd_len,
-    uint8_t*                      rsp,
-    size_t                        rsp_len)
+    const  ChanMux_ChannelOpsCtx_t*  channel_ctrl,
+    uint8_t*                        cmd,
+    size_t                          cmd_len,
+    uint8_t*                        rsp,
+    size_t                          rsp_len)
 {
     OS_Error_t ret_mux;
 
@@ -181,8 +187,8 @@ chanmux_nic_channel_ctrl_cmd(
 //------------------------------------------------------------------------------
 OS_Error_t
 chanmux_nic_channel_open(
-    const  ChanMux_channelCtx_t*  channel_ctrl,
-    unsigned int                  chan_id_data)
+    const  ChanMux_ChannelOpsCtx_t*  channel_ctrl,
+    unsigned int                    chan_id_data)
 {
     OS_Error_t ret;
 
@@ -213,9 +219,9 @@ chanmux_nic_channel_open(
 //------------------------------------------------------------------------------
 OS_Error_t
 chanmux_nic_ctrl_get_mac(
-    const ChanMux_channelCtx_t*  channel_ctrl,
-    unsigned int                 chan_id_data,
-    uint8_t*                     mac)
+    const ChanMux_ChannelOpsCtx_t*   channel_ctrl,
+    unsigned int                    chan_id_data,
+    uint8_t*                        mac)
 {
     OS_Error_t ret;
 
@@ -256,8 +262,8 @@ chanmux_nic_ctrl_get_mac(
 //------------------------------------------------------------------------------
 OS_Error_t
 chanmux_nic_ctrl_stopData(
-    const ChanMux_channelCtx_t*  channel_ctrl,
-    unsigned int                 chan_id_data)
+    const ChanMux_ChannelOpsCtx_t*   channel_ctrl,
+    unsigned int                    chan_id_data)
 {
     OS_Error_t ret;
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_STOP_READ, chan_id_data };
@@ -287,8 +293,8 @@ chanmux_nic_ctrl_stopData(
 //------------------------------------------------------------------------------
 OS_Error_t
 chanmux_nic_ctrl_startData(
-    const ChanMux_channelCtx_t*  channel_ctrl,
-    unsigned int                 chan_id_data)
+    const ChanMux_ChannelOpsCtx_t*   channel_ctrl,
+    unsigned int                    chan_id_data)
 {
     OS_Error_t ret;
     uint8_t cmd[2] = { CHANMUX_NIC_CMD_START_READ, chan_id_data };
