@@ -136,7 +136,7 @@ void
 network_stack_notify(void)
 {
     event_notify_func_t notify = config->network_stack.notify;
-    if (!config->chanmux.wait)
+    if (!notify)
     {
         Debug_LOG_ERROR("network_stack.notify() not set");
         return;
