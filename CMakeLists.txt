@@ -27,12 +27,3 @@ target_link_libraries(${PROJECT_NAME}
         os_core_api
         chanmux_client
 )
-
-#------------------------------------------------------------------------------
-# if invoked from the OS sandbox, provide a documentation build target
-if (COMMAND os_create_doxygen_target)
-
-    # there are no pre or post steps
-    os_create_doxygen_target(os_chanmux_nic_driver_doc ":" ":")
-
-endif()
