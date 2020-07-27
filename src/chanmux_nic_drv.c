@@ -71,7 +71,7 @@ chanmux_nic_driver_loop(void)
     for (;;)
     {
         // we only block on reading new data if there is an explicit request to
-        // to this. We can't do it every time the buffer is empty, becuase this
+        // to this. We can't do it every time the buffer is empty, because this
         // would block some state machine transitions.
         // ToDo: Current implementation will also block on the ChanMUX data
         //       notification, because that is the best option we have at the
@@ -162,7 +162,7 @@ chanmux_nic_driver_loop(void)
         } // end while
 
         // when we arrive here, there might be data in the buffer to read or
-        // the state achine just needs to make progress. But we can't be in
+        // the state machine just needs to make progress. But we can't be in
         // the error state, as the loop above is supposed to handle this state.
         Debug_ASSERT( RECEIVE_ERROR != state );
 
@@ -304,7 +304,7 @@ chanmux_nic_driver_loop(void)
             {
                 // frame processing is still ongoing. Instead of going straight
                 // into blocking here, we can do an optimization here in case
-                // the buffer is empt - check if there is new data in the
+                // the buffer is empty - check if there is new data in the
                 // ChanMUX FIFO and fetch it into our buffer. Then the FIFO
                 // becomes available again for more data. Note that this makes
                 // sense in the current approach where we have a local buffer
@@ -326,7 +326,7 @@ chanmux_nic_driver_loop(void)
                 yield_counter++;
                 seL4_Yield();
 
-                // As long as we yield, there is not too much again in checking
+                // As long as we yield, there is not too much gain in checking
                 // nw_rx->len here again, as we basically run a big loop. But
                 // once we block waiting on a signal, checking here makes much
                 // sense, because we expect to find the length cleared. Note
@@ -346,7 +346,7 @@ chanmux_nic_driver_loop(void)
             // Ideally, we see no yields at all. But that happens very rarely
             // (especially in debug builds). One yield seem the standard case,
             // so we don't report this unless we are loggin at trace level.
-            // The more yields we see happning, the higher the priority gets
+            // The more yields we see happening, the higher the priority gets
             // that we more to signals and stop wasint CPU time.
             if (yield_counter > 0)
             {
@@ -369,7 +369,7 @@ chanmux_nic_driver_loop(void)
         default:
             // This is basically a safe-guard. Practically, we should never
             // arrive here, since we have case-statements for all important
-            // enum values. There is none for RECEIVE_ERROR, because we hande
+            // enum values. There is none for RECEIVE_ERROR, because we handle
             // this state somewhere else.
             Debug_LOG_ERROR("invalid state %d, drop %zu bytes", state, buffer_len);
             Debug_ASSERT( RECEIVE_ERROR == state );
