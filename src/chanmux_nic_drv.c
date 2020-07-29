@@ -15,6 +15,9 @@
 #include <sel4/sel4.h> // needed for seL4_yield()
 #include <string.h>
 
+// If we pass the define from a system configuration header. CAmkES generation
+// crashes when parsing this file. As a workaround we hardcode the value here
+#define NIC_DRIVER_RINGBUFFER_NUMBER_ELEMENTS 16
 
 //------------------------------------------------------------------------------
 // Receive loop, waits for an interrupt signal from ChanMUX, reads data and
@@ -28,11 +31,9 @@ chanmux_nic_driver_loop(void)
     const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
     OS_NetworkStack_RxBuffer_t* nw_rx = (OS_NetworkStack_RxBuffer_t*)
                                         nw_input->buffer;
-    const OS_SharedBuffer_t nw_in =
-    {
-        .buffer = &(nw_rx->data),
-        .len = sizeof(nw_rx->data)
-    };
+
+    static unsigned int pos = 0;
+    size_t rx_slot_buffer_len = sizeof(nw_rx->data);
 
     // since the ChanMUX channel data port is used by send and receive, we
     // have to copy the data into an intermediate buffer, otherwise it will
@@ -218,11 +219,13 @@ chanmux_nic_driver_loop(void)
             Debug_ASSERT( frame_len <= ETHERNET_FRAME_MAX_SIZE );
             // if the frame is too big for our buffer, then the only option is
             // dropping it
-            doDropFrame = (frame_len > nw_in.len);
+            doDropFrame = (frame_len > rx_slot_buffer_len);
             if (doDropFrame)
             {
-                Debug_LOG_WARNING("frame length %zu exceeds frame buffer size %d, drop it",
-                                  frame_len, nw_in.len);
+                Debug_LOG_WARNING(
+                    "frame length %zu exceeds frame buffer size %d, drop it",
+                    frame_len,
+                    rx_slot_buffer_len);
             }
 
             // read the frame data
@@ -249,15 +252,15 @@ chanmux_nic_driver_loop(void)
                 {
                     // we can't handle frame bigger than our buffer and the only
                     // option in this case is dropping the frame
-                    Debug_ASSERT(chunk_len < nw_in.len);
-                    Debug_ASSERT( frame_offset + chunk_len < nw_in.len );
+                    Debug_ASSERT(chunk_len < rx_slot_buffer_len);
+                    Debug_ASSERT(frame_offset + chunk_len < rx_slot_buffer_len);
 
                     // ToDo: we could try to avoid this copy operation and just
                     //       have one shared memory for the ChanMUX channel and the
                     //       network stack input. But that requires more
                     //       synchronization then and we have to deal with cases
                     //       where a frame wraps around in the buffer.
-                    uint8_t* nw_in_buf = (uint8_t*)nw_in.buffer;
+                    uint8_t* nw_in_buf = (uint8_t*)nw_rx[pos].data;
                     memcpy(&nw_in_buf[frame_offset],
                            &buffer[buffer_offset],
                            chunk_len);
@@ -289,7 +292,8 @@ chanmux_nic_driver_loop(void)
 
             // notify network stack that it can process an new frame
             // Debug_LOG_DEBUG("got ethernet frame of %zu bytes", frame_len);
-            nw_rx->len = frame_len;
+            nw_rx[pos].len = frame_len;
+            pos            = (pos + 1) % NIC_DRIVER_RINGBUFFER_NUMBER_ELEMENTS;
             network_stack_notify();
 
             yield_counter = 0;
@@ -300,7 +304,7 @@ chanmux_nic_driver_loop(void)
         //----------------------------------------------------------------------
         case RECEIVE_PROCESSING:
             // check if the network stack has processed the frame.
-            if (0 != (volatile size_t)nw_rx->len)
+            if (0 != nw_rx[pos].len)
             {
                 // frame processing is still ongoing. Instead of going straight
                 // into blocking here, we can do an optimization here in case
@@ -332,7 +336,7 @@ chanmux_nic_driver_loop(void)
                 // sense, because we expect to find the length cleared. Note
                 // that we can't blindly assume this, because there might be
                 // corner cases where we could see spurious signals.
-                if (0 != (volatile size_t)nw_rx->len)
+                if (0 != nw_rx[pos].len)
                 {
                     break;
                 }
