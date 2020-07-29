@@ -15,13 +15,9 @@
 #include <sel4/sel4.h> // needed for seL4_yield()
 #include <string.h>
 
-#define OS_NETWORK_STR_(x) #x
-#define OS_NETWORK_STR(x)  OS_NETWORK_STR_(x)
-
-#if !__has_include(OS_NETWORK_STR(OS_NETWORK_CONFIG_H_FILE))
-#error "OS_NETWORK_CONFIG_H_FILE is not a header."
-#endif
-#include OS_NETWORK_STR(OS_NETWORK_CONFIG_H_FILE)
+// If we pass the define from a system configuration header. CAmkES generation
+// crashes when parsing this file. As a workaround we hardcode the value here
+#define NIC_DRIVER_RINGBUFFER_NUMBER_ELEMENTS 16
 
 //------------------------------------------------------------------------------
 // Receive loop, waits for an interrupt signal from ChanMUX, reads data and
