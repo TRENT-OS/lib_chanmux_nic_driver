@@ -197,8 +197,8 @@ chanmux_nic_driver_loop(void)
                 buffer_len--;
                 size_len--;
 
-                // frame length is send in network byte order (big endian), so we
-                // build the value as: 0x0000 -> 0x00AA -> 0xAABB
+                // frame length is send in network byte order (big endian), so
+                // we build the value as: 0x0000 -> 0x00AA -> 0xAABB
                 frame_len <<= 8;
                 frame_len |= len_byte;
 
@@ -307,17 +307,17 @@ chanmux_nic_driver_loop(void)
             if (0 != nw_rx[pos].len)
             {
                 // frame processing is still ongoing. Instead of going straight
-                // into blocking here, we can do an optimization here in case
-                // the buffer is empty - check if there is new data in the
-                // ChanMUX FIFO and fetch it into our buffer. Then the FIFO
-                // becomes available again for more data. Note that this makes
-                // sense in the current approach where we have a local buffer
-                // here. Once we optimize out this local buffer, we might also
-                // block here directly, because there is noting else we can do.
-                // Note also, that we can't do a blocking wait on the ChanMUX
-                // is there is still data in the buffer, because we have to
-                // give this data as potential frame to the network stack once
-                // is has processed the current frame.
+                // into blocking here, we can do an optimization in case the
+                // buffer is empty. Check if there is new data in the ChanMUX
+                // FIFO and fetch it into our buffer. Then the FIFO becomes
+                // available again for more data. Note that this makes sense in
+                // the current approach where we have a local buffer here. Once
+                // we optimize out this local buffer, we might also block here
+                // directly, because there is noting else we can do. Note also,
+                // that we can't do a blocking wait on the ChanMUX if there is
+                // still data in the buffer, because we have to give this data
+                // as potential frame to the network stack once is has
+                // processed the current frame.
                 doRead = (0 == buffer_len);
                 if (doRead)
                 {
