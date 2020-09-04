@@ -21,7 +21,11 @@
 
 //------------------------------------------------------------------------------
 // Receive loop, waits for an interrupt signal from ChanMUX, reads data and
-// notifies network stack when a frame is available
+// notifies network stack when a frame is available.
+// This function implements a FSM that has a big switch-case construct. Those
+// kind of functions, when decomposed, often result in a less readable code.
+// Therefore we suppress the cyclomatic complexity analysis for this function.
+// metrix++: suppress std.code.complexity:cyclomatic
 OS_Error_t
 chanmux_nic_driver_loop(void)
 {
