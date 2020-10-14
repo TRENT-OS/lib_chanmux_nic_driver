@@ -1,3 +1,8 @@
+#
+# ChanMux NIC driver library
+#
+# Copyright (C) 2019-2020, Hensoldt Cyber GmbH
+#
 cmake_minimum_required(VERSION 3.13.0)
 
 # enable new behavior introduced in CMake 3.13, where relative paths will be
