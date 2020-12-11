@@ -510,15 +510,6 @@ chanmux_nic_driver_rpc_get_mac(void)
     Debug_LOG_INFO("MAC is %02x:%02x:%02x:%02x:%02x:%02x",
                    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
 
-    // ToDo: actually, the proxy is supposed to emulate a network interface
-    //       with a proper MAC address. Currently, it uses a TAP device in
-    //       Linux and it seems things only work if we use a different MAC
-    //       address here - that's why we simply increment it by one. However,
-    //       this is something the proxy should handle internally, we want to
-    //       be agnostic of such things and just expect it to be a good network
-    //       interface card simulation that has a proper MAC.
-    mac[MAC_SIZE - 1]++;
-
     const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
     OS_NetworkStack_RxBuffer_t* nw_rx = (OS_NetworkStack_RxBuffer_t*)
                                         nw_input->buffer;
