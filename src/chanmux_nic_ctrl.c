@@ -7,7 +7,7 @@
  */
 
 
-#include "LibDebug/Debug.h"
+#include "lib_debug/Debug.h"
 #include "OS_Error.h"
 #include "ChanMux/ChanMuxCommon.h"
 #include "network/OS_Ethernet.h"

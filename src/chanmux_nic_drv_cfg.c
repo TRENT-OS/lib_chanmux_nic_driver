@@ -4,7 +4,7 @@
  *  Copyright (C) 2019, Hensoldt Cyber GmbH
 */
 
-#include "LibDebug/Debug.h"
+#include "lib_debug/Debug.h"
 #include "OS_Error.h"
 #include "ChanMux/ChanMuxCommon.h"
 #include "chanmux_nic_drv_api.h"
