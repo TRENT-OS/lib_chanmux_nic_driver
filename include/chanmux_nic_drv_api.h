@@ -1,5 +1,5 @@
 /*
- *  Seos_Driver_Config.h
+ *  ChanMux NIC driver configuration.
  *
  *  Copyright (C) 2019, Hensoldt Cyber GmbH
  */

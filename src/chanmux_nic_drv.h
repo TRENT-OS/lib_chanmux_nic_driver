@@ -30,7 +30,7 @@ OS_Error_t chanmux_nic_driver_loop(void);
 
 /**
  * @details open ethernet device simulated via ChanMUX
- * @ingroup SeosNwChanmuxIf
+ * @ingroup NwChanmuxIf
  *
  * @param channel_ctrl control channel
  * @param chan_id_data data channel
@@ -46,7 +46,7 @@ chanmux_nic_channel_open(
 
 /**
  * @details get MAC from ethernet device simulated via ChanMUX
- * @ingroup SeosNwChanmuxIf
+ * @ingroup NwChanmuxIf
  *
  * @param channel_ctrl control channel
  * @param chan_id_data data channel
