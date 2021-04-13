@@ -33,7 +33,7 @@ chanmux_ctrl_write(
     port_size = OS_Dataport_getSize(ctrl_channel->port.write);
     if (len > port_size)
     {
-        Debug_LOG_ERROR("len (%zu) exceeds buffer size (%d)", len, port_size);
+        Debug_LOG_ERROR("len (%zu) exceeds buffer size (%zu)", len, port_size);
         return OS_ERROR_GENERIC;
     }
 
@@ -73,7 +73,7 @@ chanmux_ctrl_readBlocking(
     port_size = OS_Dataport_getSize(ctrl_channel->port.read);
     if (len > port_size)
     {
-        Debug_LOG_ERROR("len (%zu) exceeds buffer size (%d)", len, port_size);
+        Debug_LOG_ERROR("len (%zu) exceeds buffer size (%zu)", len, port_size);
         return OS_ERROR_GENERIC;
     }
 

@@ -227,7 +227,7 @@ chanmux_nic_driver_loop(void)
             if (doDropFrame)
             {
                 Debug_LOG_WARNING(
-                    "frame length %zu exceeds frame buffer size %d, drop it",
+                    "frame length %zu exceeds frame buffer size %zu, drop it",
                     frame_len,
                     rx_slot_buffer_len);
             }
