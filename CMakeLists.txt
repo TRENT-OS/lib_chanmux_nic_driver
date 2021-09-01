@@ -1,5 +1,5 @@
 #
-# ChanMux NIC driver library
+# ChanMux NIC Driver Library
 #
 # Copyright (C) 2019-2020, Hensoldt Cyber GmbH
 #

@@ -1,5 +1,10 @@
-# Network Driver for TAP device via ChanMUX/Proxy
+# ChanMux NIC Driver Library
+
+## Overview
+
+Network Driver for TAP device via ChanMUX/Proxy.
 
 ## Dependencies
 
-ChanMux and Proxy interface
+- ChanMux
+- Proxy interface
