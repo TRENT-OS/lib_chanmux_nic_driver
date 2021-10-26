@@ -2,7 +2,7 @@
  *  ChanMUX Ethernet TAP driver, control channel handling
  *
  *
- *  Copyright (C) 2019, Hensoldt Cyber GmbH
+ *  Copyright (C) 2019, HENSOLDT Cyber GmbH
  *
  */
 
