@@ -1,11 +1,12 @@
 /*
- *  ChanMUX Ethernet TAP driver, control channel handling
+ * ChanMUX Ethernet TAP driver, control channel handling
  *
+ * Copyright (C) 2019-2024, HENSOLDT Cyber GmbH
  *
- *  Copyright (C) 2019, HENSOLDT Cyber GmbH
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
+ * For commercial licensing, contact: info.cyber@hensoldt.net
  */
-
 
 #include "lib_debug/Debug.h"
 #include "OS_Error.h"
@@ -18,15 +19,14 @@
 #include <stddef.h>
 #include <string.h>
 
-
 //------------------------------------------------------------------------------
 // write command into control channel. There is no point in returning the
 // written bytes as full command must be send or there is an error
 static OS_Error_t
 chanmux_ctrl_write(
-    const ChanMux_ChannelOpsCtx_t*   ctrl_channel,
-    const void*                     buf,
-    size_t                          len)
+    const ChanMux_ChannelOpsCtx_t *ctrl_channel,
+    const void *buf,
+    size_t len)
 {
     size_t port_size;
 
@@ -58,15 +58,14 @@ chanmux_ctrl_write(
     return OS_SUCCESS;
 }
 
-
 //------------------------------------------------------------------------------
 // read response from control channel. There is no point in returning the read
 // length as full responses must be read or there is an error
 static OS_Error_t
 chanmux_ctrl_readBlocking(
-    const ChanMux_ChannelOpsCtx_t*   ctrl_channel,
-    void*                           buf,
-    size_t                          len)
+    const ChanMux_ChannelOpsCtx_t *ctrl_channel,
+    void *buf,
+    size_t len)
 {
     size_t port_size;
 
@@ -77,7 +76,7 @@ chanmux_ctrl_readBlocking(
         return OS_ERROR_GENERIC;
     }
 
-    uint8_t* buffer = (uint8_t*)buf;
+    uint8_t *buffer = (uint8_t *)buf;
     size_t lenRemaining = len;
 
     // we are a graceful receiver and allow a response in multiple chunks.
@@ -93,9 +92,9 @@ chanmux_ctrl_readBlocking(
             // we ever really have chunked data - so far this luckily never
             // happens ...
             OS_Error_t err = ctrl_channel->func.read(
-                                 ctrl_channel->id,
-                                 lenRemaining,
-                                 &chunk_read);
+                ctrl_channel->id,
+                lenRemaining,
+                &chunk_read);
             if (err != OS_SUCCESS)
             {
                 Debug_LOG_ERROR("ChanMux_read() failed, error %d", err);
@@ -112,21 +111,19 @@ chanmux_ctrl_readBlocking(
                 buffer = &buffer[chunk_read];
                 lenRemaining -= chunk_read;
             }
-        }
-        while (chunk_read > 0);
+        } while (chunk_read > 0);
     }
     return OS_SUCCESS;
 }
 
-
 //------------------------------------------------------------------------------
 static OS_Error_t
 chanmux_nic_channel_ctrl_request_reply(
-    const  ChanMux_ChannelOpsCtx_t*  channel_ctrl,
-    uint8_t*                        cmd,
-    size_t                          cmd_len,
-    uint8_t*                        rsp,
-    size_t                          rsp_len)
+    const ChanMux_ChannelOpsCtx_t *channel_ctrl,
+    uint8_t *cmd,
+    size_t cmd_len,
+    uint8_t *rsp,
+    size_t rsp_len)
 {
     OS_Error_t ret;
 
@@ -147,15 +144,14 @@ chanmux_nic_channel_ctrl_request_reply(
     return OS_SUCCESS;
 }
 
-
 //------------------------------------------------------------------------------
 static OS_Error_t
 chanmux_nic_channel_ctrl_cmd(
-    const  ChanMux_ChannelOpsCtx_t*  channel_ctrl,
-    uint8_t*                        cmd,
-    size_t                          cmd_len,
-    uint8_t*                        rsp,
-    size_t                          rsp_len)
+    const ChanMux_ChannelOpsCtx_t *channel_ctrl,
+    uint8_t *cmd,
+    size_t cmd_len,
+    uint8_t *rsp,
+    size_t rsp_len)
 {
     OS_Error_t ret_mux;
 
@@ -167,11 +163,11 @@ chanmux_nic_channel_ctrl_cmd(
     }
 
     OS_Error_t ret = chanmux_nic_channel_ctrl_request_reply(
-                         channel_ctrl,
-                         cmd,
-                         cmd_len,
-                         rsp,
-                         rsp_len);
+        channel_ctrl,
+        cmd,
+        cmd_len,
+        rsp,
+        rsp_len);
 
     // we have to release the mutex even if the command failed
     ret_mux = chanmux_channel_ctrl_mutex_unlock();
@@ -183,23 +179,22 @@ chanmux_nic_channel_ctrl_cmd(
     return ret;
 }
 
-
 //------------------------------------------------------------------------------
 OS_Error_t
 chanmux_nic_channel_open(
-    const  ChanMux_ChannelOpsCtx_t*  channel_ctrl,
-    unsigned int                    chan_id_data)
+    const ChanMux_ChannelOpsCtx_t *channel_ctrl,
+    unsigned int chan_id_data)
 {
     OS_Error_t ret;
 
-    uint8_t cmd[2] = { CHANMUX_NIC_CMD_OPEN, chan_id_data };
+    uint8_t cmd[2] = {CHANMUX_NIC_CMD_OPEN, chan_id_data};
     uint8_t rsp[2];
     ret = chanmux_nic_channel_ctrl_cmd(
-              channel_ctrl,
-              cmd,
-              sizeof(cmd),
-              rsp,
-              sizeof(rsp));
+        channel_ctrl,
+        cmd,
+        sizeof(cmd),
+        rsp,
+        sizeof(rsp));
     if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Sending OPEN returned error %d", ret);
@@ -215,26 +210,24 @@ chanmux_nic_channel_open(
     return OS_SUCCESS;
 }
 
-
 //------------------------------------------------------------------------------
 OS_Error_t
 chanmux_nic_ctrl_get_mac(
-    const ChanMux_ChannelOpsCtx_t*   channel_ctrl,
-    unsigned int                    chan_id_data,
-    uint8_t*                        mac)
+    const ChanMux_ChannelOpsCtx_t *channel_ctrl,
+    unsigned int chan_id_data,
+    uint8_t *mac)
 {
     OS_Error_t ret;
 
-
-    uint8_t cmd[2] = { CHANMUX_NIC_CMD_GET_MAC, chan_id_data };
+    uint8_t cmd[2] = {CHANMUX_NIC_CMD_GET_MAC, chan_id_data};
     // 8 byte response (2 byte status and 6 byte MAC)
     uint8_t rsp[8];
     ret = chanmux_nic_channel_ctrl_cmd(
-              channel_ctrl,
-              cmd,
-              sizeof(cmd),
-              rsp,
-              sizeof(rsp));
+        channel_ctrl,
+        cmd,
+        sizeof(cmd),
+        rsp,
+        sizeof(rsp));
     if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Sending GET_MAC returned error %d", ret);
@@ -258,22 +251,21 @@ chanmux_nic_ctrl_get_mac(
     return OS_SUCCESS;
 }
 
-
 //------------------------------------------------------------------------------
 OS_Error_t
 chanmux_nic_ctrl_stopData(
-    const ChanMux_ChannelOpsCtx_t*   channel_ctrl,
-    unsigned int                    chan_id_data)
+    const ChanMux_ChannelOpsCtx_t *channel_ctrl,
+    unsigned int chan_id_data)
 {
     OS_Error_t ret;
-    uint8_t cmd[2] = { CHANMUX_NIC_CMD_STOP_READ, chan_id_data };
+    uint8_t cmd[2] = {CHANMUX_NIC_CMD_STOP_READ, chan_id_data};
     // 2 byte response
     uint8_t rsp[2];
     ret = chanmux_nic_channel_ctrl_cmd(
-              channel_ctrl,
-              cmd, sizeof(cmd),
-              rsp,
-              sizeof(rsp));
+        channel_ctrl,
+        cmd, sizeof(cmd),
+        rsp,
+        sizeof(rsp));
     if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Sending STOP_READ returned error %d", ret);
@@ -289,23 +281,22 @@ chanmux_nic_ctrl_stopData(
     return OS_SUCCESS;
 }
 
-
 //------------------------------------------------------------------------------
 OS_Error_t
 chanmux_nic_ctrl_startData(
-    const ChanMux_ChannelOpsCtx_t*   channel_ctrl,
-    unsigned int                    chan_id_data)
+    const ChanMux_ChannelOpsCtx_t *channel_ctrl,
+    unsigned int chan_id_data)
 {
     OS_Error_t ret;
-    uint8_t cmd[2] = { CHANMUX_NIC_CMD_START_READ, chan_id_data };
+    uint8_t cmd[2] = {CHANMUX_NIC_CMD_START_READ, chan_id_data};
     // 2 byte response
     uint8_t rsp[2];
     ret = chanmux_nic_channel_ctrl_cmd(
-              channel_ctrl,
-              cmd,
-              sizeof(cmd),
-              rsp,
-              sizeof(rsp));
+        channel_ctrl,
+        cmd,
+        sizeof(cmd),
+        rsp,
+        sizeof(rsp));
     if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Sending START_READ returned error %d", ret);

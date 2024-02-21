@@ -1,8 +1,11 @@
 /*
- *  ChanMUX Ethernet TAP driver
+ * ChanMUX Ethernet TAP driver
  *
- *  Copyright (C) 2019, HENSOLDT Cyber GmbH
+ * Copyright (C) 2019-2024, HENSOLDT Cyber GmbH
  *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * For commercial licensing, contact: info.cyber@hensoldt.net
  */
 
 #include "lib_debug/Debug.h"
@@ -29,12 +32,12 @@
 OS_Error_t
 chanmux_nic_driver_loop(void)
 {
-    const ChanMux_ChannelOpsCtx_t* ctrl = get_chanmux_channel_ctrl();
-    const ChanMux_ChannelOpsCtx_t* data = get_chanmux_channel_data();
+    const ChanMux_ChannelOpsCtx_t *ctrl = get_chanmux_channel_ctrl();
+    const ChanMux_ChannelOpsCtx_t *data = get_chanmux_channel_data();
 
-    const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
-    OS_NetworkStack_RxBuffer_t* nw_rx = (OS_NetworkStack_RxBuffer_t*)
-                                        nw_input->buffer;
+    const OS_SharedBuffer_t *nw_input = get_network_stack_port_to();
+    OS_NetworkStack_RxBuffer_t *nw_rx = (OS_NetworkStack_RxBuffer_t *)
+                                            nw_input->buffer;
 
     static unsigned int pos = 0;
     size_t rx_slot_buffer_len = sizeof(nw_rx->data);
@@ -113,8 +116,7 @@ chanmux_nic_driver_loop(void)
                     {
                         continue;
                     }
-                }
-                while (buffer_len > 0);
+                } while (buffer_len > 0);
 
                 state = RECEIVE_FRAME_START;
 
@@ -128,7 +130,7 @@ chanmux_nic_driver_loop(void)
             else if (doRead)
             {
                 // if there was a read request, then the buffer must be empty.
-                Debug_ASSERT( 0 == buffer_len );
+                Debug_ASSERT(0 == buffer_len);
             }
 
             // ToDo: actually, we want a single atomic blocking read RPC call
@@ -139,9 +141,9 @@ chanmux_nic_driver_loop(void)
             // the shared memory data port. We do this even in the state
             // RECEIVE_ERROR, because we have to drain the FIFOs.
             OS_Error_t err = data->func.read(
-                                 data->id,
-                                 sizeof(buffer),
-                                 &buffer_len);
+                data->id,
+                sizeof(buffer),
+                &buffer_len);
             if (err != OS_SUCCESS)
             {
                 Debug_LOG_ERROR("ChanMuxRpc_read() %s, error %d, state=%d",
@@ -169,7 +171,7 @@ chanmux_nic_driver_loop(void)
         // when we arrive here, there might be data in the buffer to read or
         // the state machine just needs to make progress. But we can't be in
         // the error state, as the loop above is supposed to handle this state.
-        Debug_ASSERT( RECEIVE_ERROR != state );
+        Debug_ASSERT(RECEIVE_ERROR != state);
 
         switch (state)
         {
@@ -179,14 +181,14 @@ chanmux_nic_driver_loop(void)
             frame_len = 0;
             frame_offset = 0;
             doDropFrame = false;
-            Debug_ASSERT( !doRead );
+            Debug_ASSERT(!doRead);
             state = RECEIVE_FRAME_LEN;
             break; // could also fall through
 
         //----------------------------------------------------------------------
         case RECEIVE_FRAME_LEN:
 
-            Debug_ASSERT( 0 != size_len );
+            Debug_ASSERT(0 != size_len);
             if (0 == buffer_len)
             {
                 doRead = true;
@@ -195,7 +197,7 @@ chanmux_nic_driver_loop(void)
 
             do
             {
-                Debug_ASSERT( buffer_offset + buffer_len <= sizeof(buffer) );
+                Debug_ASSERT(buffer_offset + buffer_len <= sizeof(buffer));
 
                 uint8_t len_byte = buffer[buffer_offset++];
                 buffer_len--;
@@ -206,12 +208,11 @@ chanmux_nic_driver_loop(void)
                 frame_len <<= 8;
                 frame_len |= len_byte;
 
-            }
-            while ((buffer_len > 0) && (size_len > 0));
+            } while ((buffer_len > 0) && (size_len > 0));
 
             if (size_len > 0)
             {
-                Debug_ASSERT( 0 == buffer_len );
+                Debug_ASSERT(0 == buffer_len);
                 doRead = true;
                 break;
             }
@@ -219,8 +220,8 @@ chanmux_nic_driver_loop(void)
             // we have read the length, make some sanity check and then
             // change state to read the frame data
             Debug_LOG_TRACE("expecting ethernet frame of %zu bytes", frame_len);
-            Debug_ASSERT( 0 == frame_offset );
-            Debug_ASSERT( frame_len <= ETHERNET_FRAME_MAX_SIZE );
+            Debug_ASSERT(0 == frame_offset);
+            Debug_ASSERT(frame_len <= ETHERNET_FRAME_MAX_SIZE);
             // if the frame is too big for our buffer, then the only option is
             // dropping it
             doDropFrame = (frame_len > rx_slot_buffer_len);
@@ -233,7 +234,7 @@ chanmux_nic_driver_loop(void)
             }
 
             // read the frame data
-            Debug_ASSERT( !doRead );
+            Debug_ASSERT(!doRead);
             state = RECEIVE_FRAME_DATA;
             break; // could also fall through
 
@@ -264,13 +265,13 @@ chanmux_nic_driver_loop(void)
                     //       network stack input. But that requires more
                     //       synchronization then and we have to deal with cases
                     //       where a frame wraps around in the buffer.
-                    uint8_t* nw_in_buf = (uint8_t*)nw_rx[pos].data;
+                    uint8_t *nw_in_buf = (uint8_t *)nw_rx[pos].data;
                     memcpy(&nw_in_buf[frame_offset],
                            &buffer[buffer_offset],
                            chunk_len);
                 }
 
-                Debug_ASSERT( buffer_len >= chunk_len );
+                Debug_ASSERT(buffer_len >= chunk_len);
                 buffer_len -= chunk_len;
                 buffer_offset += chunk_len;
                 frame_offset += chunk_len;
@@ -280,7 +281,7 @@ chanmux_nic_driver_loop(void)
             // more data
             if (frame_offset < frame_len)
             {
-                Debug_ASSERT( 0 == buffer_len );
+                Debug_ASSERT(0 == buffer_len);
                 doRead = true;
                 break;
             }
@@ -289,7 +290,7 @@ chanmux_nic_driver_loop(void)
             // try to read the next frame
             if (doDropFrame)
             {
-                Debug_ASSERT( !doRead );
+                Debug_ASSERT(!doRead);
                 state = RECEIVE_FRAME_START;
                 break;
             }
@@ -297,11 +298,11 @@ chanmux_nic_driver_loop(void)
             // notify network stack that it can process an new frame
             // Debug_LOG_DEBUG("got ethernet frame of %zu bytes", frame_len);
             nw_rx[pos].len = frame_len;
-            pos            = (pos + 1) % NIC_DRIVER_RINGBUFFER_NUMBER_ELEMENTS;
+            pos = (pos + 1) % NIC_DRIVER_RINGBUFFER_NUMBER_ELEMENTS;
             network_stack_notify();
 
             yield_counter = 0;
-            Debug_ASSERT( !doRead );
+            Debug_ASSERT(!doRead);
             state = RECEIVE_PROCESSING;
             break; // could also fall through
 
@@ -368,7 +369,7 @@ chanmux_nic_driver_loop(void)
                 }
             }
 
-            Debug_ASSERT( !doRead );
+            Debug_ASSERT(!doRead);
             state = RECEIVE_FRAME_START;
             break;
 
@@ -380,19 +381,18 @@ chanmux_nic_driver_loop(void)
             // enum values. There is none for RECEIVE_ERROR, because we handle
             // this state somewhere else.
             Debug_LOG_ERROR("invalid state %d, drop %zu bytes", state, buffer_len);
-            Debug_ASSERT( RECEIVE_ERROR == state );
+            Debug_ASSERT(RECEIVE_ERROR == state);
 
             break;
         } // end switch (state)
     }
 }
 
-
 //------------------------------------------------------------------------------
 // called by network stack to send an ethernet frame
 OS_Error_t
 chanmux_nic_driver_rpc_tx_data(
-    size_t* pLen)
+    size_t *pLen)
 {
     size_t len = *pLen;
     *pLen = 0;
@@ -413,13 +413,13 @@ chanmux_nic_driver_rpc_tx_data(
         return OS_ERROR_GENERIC;
     }
 
-    const ChanMux_ChannelOpsCtx_t* data = get_chanmux_channel_data();
-    uint8_t* port_buffer = OS_Dataport_getBuf(data->port.write);
+    const ChanMux_ChannelOpsCtx_t *data = get_chanmux_channel_data();
+    uint8_t *port_buffer = OS_Dataport_getBuf(data->port.write);
     size_t port_size = OS_Dataport_getSize(data->port.write);
     size_t port_offset = 0;
 
-    const OS_SharedBuffer_t* nw_output = get_network_stack_port_from();
-    uint8_t* buffer_nw_out = (uint8_t*)nw_output->buffer;
+    const OS_SharedBuffer_t *nw_output = get_network_stack_port_from();
+    uint8_t *buffer_nw_out = (uint8_t *)nw_output->buffer;
     size_t offset_nw_out = 0;
 
     // send frame length as uint16 in big endian
@@ -449,9 +449,9 @@ chanmux_nic_driver_rpc_tx_data(
         size_t len_to_write = port_offset + len_chunk;
         size_t len_written = 0;
         OS_Error_t err = data->func.write(
-                             data->id,
-                             len_to_write,
-                             &len_written);
+            data->id,
+            len_to_write,
+            &len_written);
         if (err != OS_SUCCESS)
         {
             Debug_LOG_ERROR("ChanMuxRpc_write() failed, error %d", err);
@@ -481,14 +481,13 @@ chanmux_nic_driver_rpc_tx_data(
     return OS_SUCCESS;
 }
 
-
 //------------------------------------------------------------------------------
 // called by network stack to get the MAC
 OS_Error_t
 chanmux_nic_driver_rpc_get_mac(void)
 {
-    const ChanMux_ChannelOpsCtx_t* ctrl = get_chanmux_channel_ctrl();
-    const ChanMux_ChannelOpsCtx_t* data = get_chanmux_channel_data();
+    const ChanMux_ChannelOpsCtx_t *ctrl = get_chanmux_channel_ctrl();
+    const ChanMux_ChannelOpsCtx_t *data = get_chanmux_channel_data();
 
     // ChanMUX simulates an ethernet device, get the MAC address from it
     uint8_t mac[MAC_SIZE] = {0};
@@ -508,11 +507,11 @@ chanmux_nic_driver_rpc_get_mac(void)
     }
 
     Debug_LOG_INFO("MAC is %02x:%02x:%02x:%02x:%02x:%02x",
-                   mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
+                   mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-    const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
-    OS_NetworkStack_RxBuffer_t* nw_rx = (OS_NetworkStack_RxBuffer_t*)
-                                        nw_input->buffer;
+    const OS_SharedBuffer_t *nw_input = get_network_stack_port_to();
+    OS_NetworkStack_RxBuffer_t *nw_rx = (OS_NetworkStack_RxBuffer_t *)
+                                            nw_input->buffer;
     memcpy(nw_rx->data, mac, MAC_SIZE);
 
     return OS_SUCCESS;

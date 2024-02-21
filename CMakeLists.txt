@@ -1,8 +1,13 @@
 #
 # ChanMux NIC Driver Library
 #
-# Copyright (C) 2019-2020, HENSOLDT Cyber GmbH
+# Copyright (C) 2019-2024, HENSOLDT Cyber GmbH
+# 
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
+# For commercial licensing, contact: info.cyber@hensoldt.net
+#
+
 cmake_minimum_required(VERSION 3.13.0)
 
 # enable new behavior introduced in CMake 3.13, where relative paths will be

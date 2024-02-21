@@ -1,8 +1,12 @@
 /*
- *  ChanMux NIC driver config
+ * ChanMux NIC driver config
  *
- *  Copyright (C) 2019, HENSOLDT Cyber GmbH
-*/
+ * Copyright (C) 2019-2024, HENSOLDT Cyber GmbH
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * For commercial licensing, contact: info.cyber@hensoldt.net
+ */
 
 #include "lib_debug/Debug.h"
 #include "OS_Error.h"
@@ -12,20 +16,18 @@
 #include "chanmux_nic_drv_api.h"
 #include "network/OS_NetworkStackTypes.h"
 
-static const chanmux_nic_drv_config_t* config;
-
+static const chanmux_nic_drv_config_t *config;
 
 //------------------------------------------------------------------------------
-const ChanMux_ChannelOpsCtx_t*
+const ChanMux_ChannelOpsCtx_t *
 get_chanmux_channel_ctrl(void)
 {
-    const ChanMux_ChannelOpsCtx_t* channel = &(config->chanmux.ctrl);
+    const ChanMux_ChannelOpsCtx_t *channel = &(config->chanmux.ctrl);
 
-    Debug_ASSERT( NULL != channel );
+    Debug_ASSERT(NULL != channel);
 
     return channel;
 }
-
 
 //------------------------------------------------------------------------------
 OS_Error_t
@@ -48,7 +50,6 @@ chanmux_channel_ctrl_mutex_lock(void)
     return OS_SUCCESS;
 }
 
-
 //------------------------------------------------------------------------------
 OS_Error_t
 chanmux_channel_ctrl_mutex_unlock(void)
@@ -70,22 +71,19 @@ chanmux_channel_ctrl_mutex_unlock(void)
     return OS_SUCCESS;
 }
 
-
 //------------------------------------------------------------------------------
-const ChanMux_ChannelOpsCtx_t*
+const ChanMux_ChannelOpsCtx_t *
 get_chanmux_channel_data(void)
 {
-    const ChanMux_ChannelOpsCtx_t* channel = &(config->chanmux.data);
+    const ChanMux_ChannelOpsCtx_t *channel = &(config->chanmux.data);
 
-    Debug_ASSERT( NULL != channel );
+    Debug_ASSERT(NULL != channel);
 
     return channel;
 }
 
-
 //------------------------------------------------------------------------------
-void
-chanmux_channel_data_wait(void)
+void chanmux_channel_data_wait(void)
 {
     event_wait_func_t wait = config->chanmux.data.wait;
     if (!wait)
@@ -98,8 +96,7 @@ chanmux_channel_data_wait(void)
 }
 
 //------------------------------------------------------------------------------
-void
-chanmux_channel_ctrl_wait(void)
+void chanmux_channel_ctrl_wait(void)
 {
     event_wait_func_t wait = config->chanmux.ctrl.wait;
     if (!wait)
@@ -112,10 +109,10 @@ chanmux_channel_ctrl_wait(void)
 }
 
 //------------------------------------------------------------------------------
-const OS_SharedBuffer_t*
+const OS_SharedBuffer_t *
 get_network_stack_port_to(void)
 {
-    Debug_ASSERT( !OS_Dataport_isUnset(config->network_stack.to) );
+    Debug_ASSERT(!OS_Dataport_isUnset(config->network_stack.to));
 
     // TODO: this is a bit hacky, but we try to make things simpler by for the
     //       caller. And these are constants, so we don't expect any surprises.
@@ -126,13 +123,12 @@ get_network_stack_port_to(void)
     return &s;
 }
 
-
 //------------------------------------------------------------------------------
-const OS_SharedBuffer_t*
+const OS_SharedBuffer_t *
 get_network_stack_port_from(void)
 {
     // network stack -> driver (aka output)
-    Debug_ASSERT( !OS_Dataport_isUnset(config->network_stack.from) );
+    Debug_ASSERT(!OS_Dataport_isUnset(config->network_stack.from));
 
     // TODO: this is a bit hacky, but we try to make things simpler by for the
     //       caller. And these are constants, so we don't expect any surprises.
@@ -143,10 +139,8 @@ get_network_stack_port_from(void)
     return &s;
 }
 
-
 //------------------------------------------------------------------------------
-void
-network_stack_notify(void)
+void network_stack_notify(void)
 {
     event_notify_func_t notify = config->network_stack.notify;
     if (!notify)
@@ -158,11 +152,10 @@ network_stack_notify(void)
     notify();
 }
 
-
 //------------------------------------------------------------------------------
 OS_Error_t
 chanmux_nic_driver_init(
-    const chanmux_nic_drv_config_t*  driver_config)
+    const chanmux_nic_drv_config_t *driver_config)
 {
     Debug_LOG_INFO("network driver init");
 
@@ -170,14 +163,14 @@ chanmux_nic_driver_init(
     config = driver_config;
 
     // initialize the shared memory, there is no data waiting in the buffer
-    const OS_SharedBuffer_t* nw_input = get_network_stack_port_to();
-    OS_NetworkStack_RxBuffer_t* nw_rx = (OS_NetworkStack_RxBuffer_t*)
-                                        nw_input->buffer;
+    const OS_SharedBuffer_t *nw_input = get_network_stack_port_to();
+    OS_NetworkStack_RxBuffer_t *nw_rx = (OS_NetworkStack_RxBuffer_t *)
+                                            nw_input->buffer;
     nw_rx->len = 0;
 
     // initialize the ChanMUX/Proxy connection
-    const ChanMux_ChannelOpsCtx_t* ctrl = get_chanmux_channel_ctrl();
-    const ChanMux_ChannelOpsCtx_t* data = get_chanmux_channel_data();
+    const ChanMux_ChannelOpsCtx_t *ctrl = get_chanmux_channel_ctrl();
+    const ChanMux_ChannelOpsCtx_t *data = get_chanmux_channel_data();
 
     Debug_LOG_INFO("ChanMUX channels: ctrl=%u, data=%u", ctrl->id, data->id);
 
@@ -192,7 +185,6 @@ chanmux_nic_driver_init(
 
     return OS_SUCCESS;
 }
-
 
 //------------------------------------------------------------------------------
 OS_Error_t

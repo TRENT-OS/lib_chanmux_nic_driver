@@ -1,7 +1,11 @@
 /*
- *  ChanMux NIC driver configuration.
+ * ChanMux NIC driver configuration.
  *
- *  Copyright (C) 2019, HENSOLDT Cyber GmbH
+ * Copyright (C) 2019-2024, HENSOLDT Cyber GmbH
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * For commercial licensing, contact: info.cyber@hensoldt.net
  */
 
 #pragma once
@@ -12,30 +16,28 @@
 #include <stdint.h>
 #include <stddef.h>
 
-
 typedef struct
 {
     struct
     {
-        ChanMux_ChannelOpsCtx_t  ctrl;
-        ChanMux_ChannelOpsCtx_t  data;
+        ChanMux_ChannelOpsCtx_t ctrl;
+        ChanMux_ChannelOpsCtx_t data;
     } chanmux;
 
     struct
     {
-        OS_Dataport_t        to;   // NIC -> stack
-        OS_Dataport_t        from; // stack -> NIC
-        event_notify_func_t  notify; // one ore more frames are available
+        OS_Dataport_t to;           // NIC -> stack
+        OS_Dataport_t from;         // stack -> NIC
+        event_notify_func_t notify; // one ore more frames are available
     } network_stack;
 
     struct
     {
-        mutex_lock_func_t    lock;
-        mutex_unlock_func_t  unlock;
+        mutex_lock_func_t lock;
+        mutex_unlock_func_t unlock;
     } nic_control_channel_mutex;
 
 } chanmux_nic_drv_config_t;
-
 
 /**
  * @brief initialize the driver
@@ -47,8 +49,7 @@ typedef struct
  */
 OS_Error_t
 chanmux_nic_driver_init(
-    const chanmux_nic_drv_config_t*  driver_config);
-
+    const chanmux_nic_drv_config_t *driver_config);
 
 /**
  * @brief run the driver main loop
@@ -59,11 +60,9 @@ chanmux_nic_driver_init(
 OS_Error_t
 chanmux_nic_driver_run(void);
 
-
 OS_Error_t
 chanmux_nic_driver_rpc_tx_data(
-    size_t* pLen);
+    size_t *pLen);
 
 OS_Error_t
 chanmux_nic_driver_rpc_get_mac(void);
-
